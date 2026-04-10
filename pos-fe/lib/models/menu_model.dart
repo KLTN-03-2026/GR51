@@ -1,0 +1,51 @@
+class DanhMuc {
+  final int id;
+  final String tenDanhMuc;
+  final List<Mon>? mons;
+
+  DanhMuc({
+    required this.id,
+    required this.tenDanhMuc,
+    this.mons,
+  });
+
+  factory DanhMuc.fromJson(Map<String, dynamic> json) {
+    var monList = json['mons'] as List?;
+    List<Mon>? parsedMons;
+    if (monList != null) {
+      parsedMons = monList.map((m) => Mon.fromJson(m)).toList();
+    }
+
+    return DanhMuc(
+      id: json['id'] ?? 0,
+      tenDanhMuc: json['ten_danh_muc'] ?? '',
+      mons: parsedMons,
+    );
+  }
+}
+
+class Mon {
+  final String maMon;
+  final String tenMon;
+  final double gia;
+  final String? hinhAnh;
+  final int danhMucId;
+
+  Mon({
+    required this.maMon,
+    required this.tenMon,
+    required this.gia,
+    this.hinhAnh,
+    required this.danhMucId,
+  });
+
+  factory Mon.fromJson(Map<String, dynamic> json) {
+    return Mon(
+      maMon: json['ma_mon']?.toString() ?? json['id']?.toString() ?? '',
+      tenMon: json['ten_mon'] ?? '',
+      gia: double.tryParse(json['gia_ban'].toString()) ?? double.tryParse(json['gia'].toString()) ?? 0.0,
+      hinhAnh: json['hinh_anh'],
+      danhMucId: int.tryParse(json['danh_muc_id']?.toString() ?? '') ?? 0,
+    );
+  }
+}
