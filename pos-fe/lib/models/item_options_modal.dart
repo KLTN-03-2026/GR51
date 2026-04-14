@@ -8,6 +8,7 @@ class ItemOptionsModal extends StatefulWidget {
   final List<dynamic> sizes;
   final List<dynamic> toppings;
   final Function(CartItem) onAddToCart;
+  final CartItem? editingItem;
 
   const ItemOptionsModal({
     super.key,
@@ -15,6 +16,7 @@ class ItemOptionsModal extends StatefulWidget {
     required this.sizes,
     required this.toppings,
     required this.onAddToCart,
+    this.editingItem,
   });
 
   @override
@@ -25,14 +27,27 @@ class _ItemOptionsModalState extends State<ItemOptionsModal> {
   Map<String, dynamic>? _selectedSize;
   List<Map<String, dynamic>> _selectedToppings = [];
   final _currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
+  final TextEditingController _noteController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    // Mặc định tự động chọn Size đầu tiên nếu có
-    if (widget.sizes.isNotEmpty) {
-      _selectedSize = widget.sizes[0] as Map<String, dynamic>;
+    if (widget.editingItem != null) {
+      _selectedSize = widget.editingItem!.selectedSize;
+      _selectedToppings = List.from(widget.editingItem!.selectedToppings);
+      _noteController.text = widget.editingItem!.ghiChu ?? '';
+    } else {
+      // Mặc định tự động chọn Size đầu tiên nếu có
+      if (widget.sizes.isNotEmpty) {
+        _selectedSize = widget.sizes[0] as Map<String, dynamic>;
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
   }
 
   // Hàm tính tổng tiền Real-time khi bấm bấm
@@ -60,6 +75,7 @@ class _ItemOptionsModalState extends State<ItemOptionsModal> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
+      backgroundColor: Colors.grey[50], // Tách biệt màu nền form với các nút trắng
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         width: 500, // Chiều rộng chuẩn cho form Popup trên POS
@@ -192,6 +208,7 @@ itemBuilder: (context, index) {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12),
                               decoration: BoxDecoration(
+                                color: Colors.white, // Nền trắng nổi bật
                                 border: Border.all(color: Colors.grey[300]!),
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -215,7 +232,34 @@ itemBuilder: (context, index) {
                           );
                         },
                       ),
-                    ]
+                    ],
+                    const SizedBox(height: 24),
+
+                    // Khối Ghi chú
+                    _buildSectionTitle(
+                      (widget.sizes.isNotEmpty && widget.toppings.isNotEmpty) ? '3' 
+                      : (widget.sizes.isNotEmpty || widget.toppings.isNotEmpty) ? '2' : '1', 
+                      'Ghi chú', 
+                      subTitle: '(Không bắt buộc)'
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _noteController,
+                      maxLines: 2,
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white,
+                        hintText: 'VD: Ít đá, không đường...',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -255,6 +299,8 @@ itemBuilder: (context, index) {
                       // Gom data thành 1 CartItem hoàn chỉnh
                       final newItem = CartItem(
                         mon: widget.mon,
+                        soLuong: widget.editingItem?.soLuong ?? 1,
+                        ghiChu: _noteController.text.trim().isNotEmpty ? _noteController.text.trim() : null,
                         selectedSize: _selectedSize,
                         selectedToppings: _selectedToppings,
                       );
@@ -263,7 +309,7 @@ itemBuilder: (context, index) {
                       Navigator.pop(context); // Đóng popup
                     },
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.orange[800], padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                    child: const Text('Thêm vào đơn', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: Text(widget.editingItem != null ? 'Cập nhật' : 'Thêm vào đơn', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   )
                 ],
               ),

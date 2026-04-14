@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../viewmodels/auth_viewmodel.dart';
-import '../menu_view.dart';
+import '../main_layout.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({Key? key}) : super(key: key);
@@ -34,7 +34,7 @@ class _LoginViewState extends State<LoginView> {
       if (success && mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const MenuView()),
+          MaterialPageRoute(builder: (_) => const MainLayout()),
         );
       }
     }

@@ -185,6 +185,29 @@ class _MenuViewState extends State<MenuView> {
   }
 
   Widget _buildMenuGrid(BuildContext context) {
+    // 1. Chặn lưới Menu nếu chưa mở ca
+    final authVM = context.watch<AuthViewModel>();
+    if (!authVM.isShiftActive) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.lock_outline, size: 80, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            const Text(
+              'Chưa mở ca làm việc',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black54),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Vui lòng mở ca làm việc để hiển thị thực đơn và bắt đầu bán hàng.',
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Consumer<MenuViewModel>(
       builder: (context, viewModel, child) {
         if (viewModel.isLoading) {
@@ -227,7 +250,16 @@ class _MenuViewState extends State<MenuView> {
             final mon = viewModel.filteredItems[index];
             return GestureDetector(
               onTap: () {
-                // context.read<CartViewModel>().addToCart(mon);
+                if (mon.isHetHang) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Món nước này đã hết nguyên liệu tồn kho!'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
                 final menuVM = context.read<MenuViewModel>();
                 showDialog(
                   context: context,
@@ -253,11 +285,13 @@ class _MenuViewState extends State<MenuView> {
   Widget _buildMenuCard(Mon mon) {
     final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
     
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
+    return Opacity(
+      opacity: mon.isHetHang ? 0.6 : 1.0,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
             blurRadius: 15,
@@ -293,21 +327,41 @@ class _MenuViewState extends State<MenuView> {
                             ),
                     ),
                   ),
-                  Positioned(
-                    bottom: 8,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.9),
-                          shape: BoxShape.circle,
+                  if (!mon.isHetHang)
+                    Positioned(
+                      bottom: 8,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.9),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.add, color: Colors.orange, size: 20),
                         ),
-                        child: const Icon(Icons.add, color: Colors.orange, size: 20),
                       ),
                     ),
-                  )
+                  if (mon.isHetHang)
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.red[600],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text('Hết hàng', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -337,10 +391,12 @@ class _MenuViewState extends State<MenuView> {
           )
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildRightSidebar(BuildContext context) {
+    final authVM = context.watch<AuthViewModel>();
+    
     return Consumer<CartViewModel>(
       builder: (context, cart, child) {
         final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
@@ -440,48 +496,64 @@ class _MenuViewState extends State<MenuView> {
                 ],
               ),
               const SizedBox(height: 24),
-              // Các nút
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () {},
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        side: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      child: const Text('Lưu tạm', style: TextStyle(color: Colors.black87)),
-                    ),
+              // Nút Gửi pha chế
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: (!authVM.isShiftActive || cart.cartItems.isEmpty || cart.isSubmitting)
+                    ? null
+                    : () async {
+                        final String loaiDon = selectedBan != null ? 'tai_ban' : 'mang_di';
+                        final String? maBanString = selectedBan?.maBan;
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Đang in các tem của ly nước để pha chế...'),
+                            backgroundColor: Colors.blue,
+                            duration: Duration(seconds: 1),
+                          ),
+                        );
+
+                        bool success = await cart.submitOrder(
+                          loaiDon: loaiDon,
+                          phuongThucThanhToan: 'tien_mat',
+                          maBan: maBanString,
+                          trangThaiThanhToan: 'chua_thanh_toan',
+                          trangThaiDon: 'dang_pha',
+                        );
+
+                        if (context.mounted) {
+                          if (success) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Đã gửi yêu cầu pha chế thành công!'), backgroundColor: Colors.green),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Lỗi: Thu ngân kiểm tra lại kết nối mạng.'), backgroundColor: Colors.red),
+                            );
+                          }
+                        }
+                      },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E293B), // Slate/Dark Blue
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1E293B), // Slate/Dark Blue
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: const Text('Gửi pha chế', style: TextStyle(color: Colors.white)),
-                    ),
-                  ),
-                ],
+                  child: const Text('Gửi pha chế', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
               ),
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: cart.cartItems.isEmpty || cart.isSubmitting
+                  onPressed: (!authVM.isShiftActive || cart.cartItems.isEmpty || cart.isSubmitting)
                       ? null
                       : () async {
                           final String loaiDon = selectedBan != null ? 'tai_ban' : 'mang_di';
                           final String? maBanString = selectedBan?.maBan;
 
-                          final success = await showModalBottomSheet<bool>(
+                          final success = await showDialog<bool>(
                             context: context,
-                            isScrollControlled: true,
-                            backgroundColor: Colors.transparent,
                             builder: (context) => PaymentModal(
                               loaiDon: loaiDon,
                               maBan: maBanString,
@@ -591,7 +663,21 @@ class _MenuViewState extends State<MenuView> {
             ),
             IconButton(
               icon: const Icon(Icons.edit_note, color: Colors.grey, size: 24),
-              onPressed: () => _showNoteDialog(context, item, cart),
+              onPressed: () {
+                final menuVM = context.read<MenuViewModel>();
+                showDialog(
+                  context: context,
+                  builder: (context) => ItemOptionsModal(
+                    mon: item.mon,
+                    sizes: menuVM.listSizes,
+                    toppings: menuVM.listToppings,
+                    editingItem: item,
+                    onAddToCart: (CartItem updatedItem) {
+                      cart.updateCartItem(item, updatedItem);
+                    },
+                  ),
+                );
+              },
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
             ),
@@ -636,38 +722,5 @@ class _MenuViewState extends State<MenuView> {
     );
   }
 
-  void _showNoteDialog(BuildContext context, CartItem item, CartViewModel cart) {
-    final noteController = TextEditingController(text: item.ghiChu);
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Ghi chú món ăn'),
-          content: TextField(
-            controller: noteController,
-            decoration: const InputDecoration(
-              hintText: 'VD: Ít đá, không đường...',
-              border: OutlineInputBorder(),
-            ),
-            maxLines: 2,
-            autofocus: true,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                cart.updateItemNote(item, noteController.text);
-                Navigator.pop(context);
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-              child: const Text('Xác nhận', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  // Removed _showNoteDialog as it is replaced by ItemOptionsModal
 }

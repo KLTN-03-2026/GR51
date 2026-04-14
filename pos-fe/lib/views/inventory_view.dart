@@ -142,17 +142,17 @@ class _InventoryViewState extends State<InventoryView> {
       // Hết hàng
       bgColor = Colors.red[600]!;
       textColor = Colors.white;
-      iconString = '❌';
+      iconString = '';
     } else if (item.tonKho <= item.mucCanhBao) {
       // Sắp hết
       bgColor = Colors.orange[400]!;
       textColor = Colors.black87;
-      iconString = '⚠️';
+      iconString = '';
     } else {
       // An toàn
       bgColor = Colors.green[600]!;
       textColor = Colors.white;
-      iconString = '✅';
+      iconString = '';
     }
     
     // Xử lý số thập phân: nếu chẵn thì không hiện phần thập phân

@@ -64,6 +64,12 @@ class CartViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateCartItem(CartItem oldItem, CartItem newItem) {
+    newItem.soLuong = oldItem.soLuong;
+    cartItems.remove(oldItem);
+    addToCart(newItem);
+  }
+
   void removeItem(CartItem item) {
     cartItems.remove(item);
     notifyListeners();
@@ -119,14 +125,14 @@ class CartViewModel extends ChangeNotifier {
     if (loaiDon != 'mang_di' && loaiDon != 'Mang đi') mappedLoaiDon = 'tai_ban';
 
     // IN PAYLOAD TEST
-    print('========= [TEST PAYLOAD TẠO ĐƠN] =========');
-    print('loai_don: $mappedLoaiDon');
-    print('phuong_thuc_thanh_toan: $mappedPhuongThuc');
-    print('trang_thai_thanh_toan: $mappedTrangThaiTT');
-    print('trang_thai_don: $trangThaiDon');
-    print('ma_ban: $maBan');
-    print('cartItems count: ${cartItems.length}');
-    print('==========================================');
+    // print('========= [TEST PAYLOAD TẠO ĐƠN] =========');
+    // print('loai_don: $mappedLoaiDon');
+    // print('phuong_thuc_thanh_toan: $mappedPhuongThuc');
+    // print('trang_thai_thanh_toan: $mappedTrangThaiTT');
+    // print('trang_thai_don: $trangThaiDon');
+    // print('ma_ban: $maBan');
+    // print('cartItems count: ${cartItems.length}');
+    // print('==========================================');
 
     try {
       await _apiService.createOrder(

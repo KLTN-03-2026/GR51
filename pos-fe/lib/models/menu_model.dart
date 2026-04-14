@@ -30,6 +30,7 @@ class Mon {
   final double gia;
   final String? hinhAnh;
   final int danhMucId;
+  final bool isHetHang;
 
   Mon({
     required this.maMon,
@@ -37,6 +38,7 @@ class Mon {
     required this.gia,
     this.hinhAnh,
     required this.danhMucId,
+    this.isHetHang = false,
   });
 
   factory Mon.fromJson(Map<String, dynamic> json) {
@@ -46,6 +48,7 @@ class Mon {
       gia: double.tryParse(json['gia_ban'].toString()) ?? double.tryParse(json['gia'].toString()) ?? 0.0,
       hinhAnh: json['hinh_anh'],
       danhMucId: int.tryParse(json['danh_muc_id']?.toString() ?? '') ?? 0,
+      isHetHang: json['is_het_hang'] == true || json['is_het_hang'] == 1,
     );
   }
 }
