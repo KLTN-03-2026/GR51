@@ -74,7 +74,7 @@ class CaLamController extends Controller
 
         // Kéo tất cả đơn hàng đã Hoàn Thành của nhân viên này trong khoảng thời gian ca làm
         $donHangs = DonHang::where('ma_nhan_su', $maNhanSu)
-            ->whereIn('trang_thai_don', ['hoan_thanh', 'hoan_thanh_pha_che'])
+            ->where('trang_thai_don', 'hoan_thanh')
             ->where('created_at', '>=', $caLam->thoi_gian_bat_dau)
             ->get();
 
@@ -130,13 +130,13 @@ class CaLamController extends Controller
 
             // Tính toán lại tiền hệ thống trước khi chốt
             $tienMatHeThong = DonHang::where('ma_nhan_su', $maNhanSu)
-                ->whereIn('trang_thai_don', ['hoan_thanh', 'hoan_thanh_pha_che'])
+                ->where('trang_thai_don', 'hoan_thanh')
                 ->where('phuong_thuc_thanh_toan', 'tien_mat')
                 ->where('created_at', '>=', $caLam->thoi_gian_bat_dau)
                 ->sum('tong_tien');
 
             $tongDoanhThu = DonHang::where('ma_nhan_su', $maNhanSu)
-                ->where('trang_thai_don', 'hoan_thanh', 'hoan_thanh_pha_che')
+                ->where('trang_thai_don', 'hoan_thanh')
                 ->where('created_at', '>=', $caLam->thoi_gian_bat_dau)
                 ->sum('tong_tien');
 

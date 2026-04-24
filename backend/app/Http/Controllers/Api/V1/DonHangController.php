@@ -142,7 +142,7 @@ class DonHangController extends Controller
             $donHang->save();
 
             $newStatus = $donHang->trang_thai_don;
-            $finishedStatuses = ['da_pha_che', 'hoan_thanh', 'hoan_thanh_pha_che'];
+            $finishedStatuses = ['da_pha_che', 'hoan_thanh'];
 
             if (in_array($newStatus, $finishedStatuses) && !in_array($oldStatus, $finishedStatuses)) {
                 $donHang->load('chiTietDonHangs.mon.congThucs');
@@ -218,6 +218,100 @@ class DonHangController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi lấy danh sách KDS: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function storeQr(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'chi_tiets.*.ghi_chu' => 'nullable|string|max:255',
+                'loai_don' => 'required|in:tai_ban,mang_di',
+                'phuong_thuc_thanh_toan' => 'required|in:tien_mat,chuyen_khoan,momo',
+                'trang_thai_thanh_toan' => 'required|in:chua_thanh_toan,da_thanh_toan',
+            ]);
+
+            DB::beginTransaction();
+
+            $chiTiets = $request->input('chi_tiets', []);
+            $tongTien = 0;
+
+            foreach ($chiTiets as $item) {
+                $tongTien += ($item['so_luong'] * $item['don_gia']);
+            }
+
+            $maDonHang = uniqid('DH_');
+
+            // Đơn từ QR luôn đưa vào trạng thái đang pha chế để khớp với flow của quán
+            $trangThaiDon = 'dang_pha';
+
+            $donHang = DonHang::create([
+                'ma_don_hang' => $maDonHang,
+                'ma_ban' => $request->input('ma_ban'),
+                'ma_nhan_su' => null, // Không có nhân sự vì là khách tự đặt
+                'loai_don' => $request->input('loai_don'),
+                'tong_tien' => $tongTien,
+                'phuong_thuc_thanh_toan' => $request->input('phuong_thuc_thanh_toan'),
+                'trang_thai_thanh_toan' => $request->input('trang_thai_thanh_toan'),
+                'trang_thai_don' => $trangThaiDon,
+            ]);
+
+            foreach ($chiTiets as $item) {
+                ChiTietDonHang::create([
+                    'ma_chi_tiet' => uniqid('CT_'),
+                    'ma_don_hang' => $maDonHang,
+                    'ma_mon' => $item['ma_mon'],
+                    'so_luong' => $item['so_luong'],
+                    'don_gia' => $item['don_gia'],
+                    'ghi_chu' => $item['ghi_chu'] ?? null,
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tạo đơn hàng từ QR thành công',
+                'data' => $donHang->load('chiTietDonHangs')
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi tạo đơn hàng QR: ' . $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
+    }
+
+    public function showQr($maDonHang): JsonResponse
+    {
+        try {
+            $donHang = DonHang::where('ma_don_hang', $maDonHang)->first();
+            
+            if (!$donHang) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy đơn hàng'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'ma_don_hang' => $donHang->ma_don_hang,
+                    'trang_thai_don' => $donHang->trang_thai_don,
+                    'trang_thai_thanh_toan' => $donHang->trang_thai_thanh_toan,
+                    'tong_tien' => $donHang->tong_tien,
+                    'phuong_thuc_thanh_toan' => $donHang->phuong_thuc_thanh_toan,
+                    'da_danh_gia' => $donHang->danhGia ? true : false,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi: ' . $e->getMessage()
             ], 500);
         }
     }

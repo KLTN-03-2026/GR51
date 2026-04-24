@@ -1,98 +1,95 @@
-# NGHIÊN CỨU VÀ PHÁT TRIỂN NỀN TẢNG SỐ HÓA QUY TRÌNH PHỤC VỤ VÀ THANH TOÁN TRONG QUẢN LÝ QUÁN CAFE TÍCH HỢP AI HỖ TRỢ NGƯỜI QUẢN LÝ - Tổng Quan Hệ Thống
+# SMART CAFE - Nền Tảng Số Hóa Quản Lý Quán Cafe Tích Hợp AI ☕🤖
 
-Đây là dự án về một hệ thống quản lý quán cafe và điểm bán hàng (POS) toàn diện được thiết kế hiện đại, bao gồm hai thành phần chính: **Backend API (Laravel)** và **Frontend Client (Flutter)**.
+Smart Cafe là một hệ sinh thái quản lý quán cafe và điểm bán hàng (POS) toàn diện, hiện đại. Dự án cung cấp giải pháp chuyển đổi số sâu rộng từ khâu gọi món, pha chế, thanh toán, quản lý kho tự động đến phân tích dữ liệu thông minh bằng Trợ lý AI.
 
-Dưới đây là tổng hợp toàn bộ các tiến độ, kiến trúc và tính năng đã được hoàn thiện cho cả hai nền tảng trong giai đoạn Sprint 1.(bao gồm xây dựng API ở phía backend và frontend cho máy POS)
-
----
-
-## 1. Hệ Thống Backend (Thư mục `backend/`)
-
-Backend đóng vai trò cốt lõi xử lý nghiệp vụ, quản lý dữ liệu và cung cấp RESTful API cho các client.
-
-- **Công nghệ cốt lõi:** Laravel 12 (PHP 8.2), Eloquent ORM, Laravel Sanctum.
-- **Tình trạng:** Đã cấu hình và xử lý các lỗi mapping dữ liệu, thiết lập chuẩn hóa Primary Key để đảm bảo tính toàn vẹn trong các Transaction.
-
-### Các Module đã hoàn thiện:
-
-1. **Quản lý Thực đơn (Menu & Recipe):**
-   - Hỗ trợ đa dạng cấu hình sản phẩm như Kích cỡ (Size) và Topping đính kèm.
-   - Quản lý chi tiết Thành phần Công thức (Recipe) và hướng dẫn pha chế cho từng món ăn. Mới bổ sung API lấy thông tin chi tiết công thức (`/api/v1/mon-an/{id}/cong-thuc`).
-
-2. **Quản lý Tồn kho (Inventory Management):**
-   - Theo dõi tồn kho theo thời gian thực (Real-time).
-   - Thiết lập các mức độ cảnh báo tồn kho an toàn/sắp hết/hết hàng qua API (`/api/v1/kho/ton-kho`).
-   - **Trừ kho tự động (Auto-deduction):** Sử dụng Database Transaction để tự động tính toán khối lượng nguyên liệu và trừ kho khi trạng thái đơn hàng được chuyển sang "Đã pha chế". Hệ thống tự nhận diện công thức cấu thành để tính đúng khối lượng xuất bán.
-
-3. **Quản lý Đơn hàng & POS:**
-   - Xử lý mượt mà luồng tạo đơn hàng, các lựa chọn (Size/Topping), hình thức thanh toán (Tiền mặt/Chuyển khoản).
-   - Quản lý trạng thái từng món (Chờ xử lý -> Đang pha chế -> Hoàn thành).
-
-4. **Quản lý Ca làm việc (Shift Management):**
-   - Các API Mở ca (`/ca-lam/mo-ca`), Đóng ca (`/ca-lam/ket-ca`) và Lấy thông tin ca hiện tại (`/ca-lam/hien-tai`).
-   - Tổng hợp doanh thu, lượng đơn bán trong ca phục vụ đối soát giao ca.
-
-5. **Quản lý Bàn & Khu vực:**
-   - Map/Sơ đồ bàn và các khu vực, cập nhật tình trạng bàn trống/đang có khách trực tiếp.
+Hệ thống được thiết kế theo kiến trúc Client-Server, bao gồm **4 phân hệ chính**:
+1. **Backend API** (Laravel)
+2. **Frontend POS App** (Flutter)
+3. **Web Admin Dashboard** (Vue 3)
+4. **Customer QR Web Order** (Vue 3)
 
 ---
 
-## 2. Hệ Thống Frontend POS (Thư mục `pos-fe/`)
+## 🏗️ 1. Hệ Thống Backend API (`/backend`)
+Đóng vai trò cốt lõi xử lý nghiệp vụ, kết nối cơ sở dữ liệu và cung cấp RESTful API bảo mật cho toàn bộ các client.
 
-Giao diện người dùng cho nhân viên thu ngân và pha chế (Client App) được tổ chức theo kiến trúc Clean Code và **MVVM** chuẩn mực.
+- **Công nghệ:** Laravel 12 (PHP 8.x), Eloquent ORM, MySQL, Laravel Sanctum.
+- **Tính năng nổi bật:**
+  - **Cấu hình Thực đơn (Menu):** Quản lý chi tiết Món ăn, Kích cỡ (Size), Topping và Công thức pha chế (Recipe).
+  - **Trừ Kho Tự Động (Auto-deduction):** Sử dụng Database Transaction tự động tính toán và trừ số lượng nguyên liệu chuẩn xác dựa trên công thức ngay khi đơn hàng chuyển trạng thái "Đã pha chế", giải quyết triệt để vấn đề âm kho.
+  - **Xử lý Luồng Đơn hàng:** Xử lý đa dạng các nguồn đơn (tại quầy, quét mã QR), hỗ trợ thanh toán tiền mặt/chuyển khoản ngân hàng.
+  - **AI Integration Logic:** Tích hợp logic xử lý và tổng hợp dữ liệu thực tế (tồn kho, doanh thu, top món bán chạy) thành ngữ cảnh (context) để gửi sang Google Gemini API.
+  - **Quản lý Ca làm việc:** Theo dõi mở ca, kết ca, đối soát doanh thu.
+  - **Hệ thống Đánh giá:** Xử lý và lưu trữ thông tin đánh giá dịch vụ từ khách hàng sau khi thanh toán.
 
-- **Công nghệ cốt lõi:** Flutter (SDK 3.10+), Provider (State Management), HTTP Client.
-- **Giao diện (UI/UX):** Phong cách Dark/Orange hiện đại, hỗ trợ thanh điều hướng thân thiện (Sidebar Navigation), tối ưu tương tác chạm trên màn hình POS.
+## 💻 2. Phần Mềm Máy Bán Hàng POS (`/pos-fe`)
+Giao diện ứng dụng dành cho nhân viên thu ngân và Barista, tối ưu hóa cho màn hình cảm ứng POS tại quầy.
 
-### Các Module đã hoàn thiện:
+- **Công nghệ:** Flutter (SDK 3.10+), Provider (State Management), Dio/HTTP Client.
+- **Tính năng nổi bật:**
+  - **Giao diện Bán hàng (Sales):** Thao tác gọi món nhanh chóng, chọn size/topping trực quan. Hỗ trợ hiển thị Popup mã QR chuyển khoản ngân hàng ngay trên màn hình thanh toán.
+  - **Màn hình Pha chế KDS (Kitchen Display System):** Giúp Barista theo dõi đơn hàng theo thời gian thực. Đặc biệt tích hợp Popup xem nhanh **Công thức pha chế** ngay tại quầy.
+  - **Theo dõi Tồn kho (Inventory):** Giám sát tình trạng nguyên liệu qua hệ thống thẻ màu trực quan (Đỏ - Hết hàng, Cam - Sắp hết, Xanh - An toàn).
+  - **Lịch sử & Giao ca:** Quản lý lịch sử giao dịch chi tiết, hỗ trợ tính toán chốt ca làm việc và đối soát tiền mặt cuối ngày.
 
-1. **Giao diện Bán hàng (Menu/Sales):**
-   - Danh sách món ăn phân theo danh mục (`MenuView`).
-   - Tích hợp Modal chọn phân loại Món (Size/Đá/Đường/Topping).
-   - Quản lý Giỏ hàng (`CartViewModel`) và Modal Thanh toán/Chọn Bàn (`TableSelectionModal`).
-   - Đã fix triệt để lỗi mapping payload khi gửi mã thanh toán và phương thức (chuẩn hóa mã String gửi xuống backend).
+## 📊 3. Web Admin Dashboard & Trợ Lý AI (`/cafe-admin`)
+Công cụ quản trị cấp cao dành cho Chủ quán / Người quản lý với giao diện Web Dark Mode hiện đại, sang trọng, mang lại trải nghiệm tối ưu cùng sức mạnh của trí tuệ nhân tạo.
 
-2. **Xử lý Đơn pha chế / KDS (Order List):**
-   - Lắng nghe đơn đổ về, hiển thị dạng thẻ tập trung.
-   - Cập nhật trạng thái từng đơn hàng để kích hoạt luồng "Trừ kho tự động" dưới backend.
-   - **Tích hợp Popup Công thức:** Nút hiển thị nhanh danh sách nguyên liệu và hướng dẫn pha chế cho Barista ngay tại quầy.
+- **Công nghệ:** Vue 3 (Composition API), Vite, Pinia, Vue Router, Chart.js, Axios.
+- **Tính năng nổi bật:**
+  - **Dashboard Thống kê:** Báo cáo trực quan về doanh thu, lượng đơn hàng, biểu đồ tăng trưởng và top món bán chạy qua Chart.js.
+  - **Quản lý Toàn diện:** Cung cấp CRUD đầy đủ cho Thực đơn, Kho hàng, Bàn & Khu vực, Nhân sự và hệ thống Review của khách. Giao diện thân thiện (sử dụng Toast và Custom Dialogs thay vì Alert truyền thống).
+  - **🤖 Trợ Lý Quản Lý AI (Cafe AI):** Chatbot nổi (Floating Widget) tích hợp Google Gemini API ngay trên màn hình Admin, đóng vai trò như một chuyên gia dữ liệu, cung cấp:
+    - *Predictive Inventory (Dự đoán Kho):* Tính toán tốc độ tiêu thụ, tự động dự đoán thời gian hết nguyên liệu (vd: "Cà phê sẽ hết trong 2 ngày tới").
+    - *Conversational BI:* Cho phép người quản lý truy vấn doanh thu, đơn hàng bằng ngôn ngữ tự nhiên tiếng Việt.
+    - *Menu Engineering & Analytics:* Tự động phân loại món (Ngôi sao, Bò sữa, Đố đánh, Chó mực) dựa trên hiệu suất kinh doanh, đồng thời phát hiện bất thường và đưa ra lời khuyên tối ưu lợi nhuận.
 
-3. **Quản lý Tồn kho (Inventory Tab):**
-   - Giao diện trực quan phân loại mức tồn kho (`InventoryView`).
-   - Hệ thống thẻ màu thông minh: **Đỏ** (Hết hàng), **Cam** (Sắp hết), **Xanh** (An toàn).
-   - Đã tích hợp tính năng tìm kiếm (Search) theo tên nguyên liệu và nút tải lại dữ liệu (Reload) nhanh.
+## 📱 4. Web Đặt Món Mã QR Khách Hàng (`/cafe-web-order`)
+Ứng dụng Web App siêu nhẹ dành riêng cho khách hàng, cho phép tự order tại bàn cực nhanh mà không cần cài đặt App.
 
-4. **Lịch sử Đơn hàng (Order History):**
-   - Bảng tra cứu toàn bộ đơn đã và đang xử lý, xem nhanh tổng thu và phương thức thanh toán.
-
-5. **Tài Khoản & Bàn giao Ca (Account & Shift):**
-   - Giao diện mở/kết ca.
-   - Thống kê đối soát tiền mặt với hệ thống cho nhân viên trực ca (`ShiftViewModel`).
+- **Công nghệ:** Vue 3, Vite, Axios.
+- **Tính năng nổi bật:**
+  - **Quét mã QR gọi món:** Khách hàng dùng điện thoại quét mã QR tại bàn để xem Menu thực tế của quán.
+  - **Tự động đặt món:** Khách tự chọn món, tuỳ chỉnh Size, Topping và gửi đơn thẳng xuống hệ thống KDS/POS của nhân viên mà không cần chờ đợi.
+  - **Hệ thống Feedback:** Khách hàng có thể chấm điểm (1-5 sao) và để lại bình luận về chất lượng đồ uống/dịch vụ trên giao diện theo dõi trạng thái đơn hàng ngay sau khi đơn được thanh toán.
 
 ---
 
-## Hướng Dẫn Nhanh (Quick Start)
+## 🚀 Hướng Dẫn Khởi Chạy (Quick Start)
 
-### Chạy Backend
-
+### 1. Backend (Laravel)
 ```bash
 cd backend
-# Cài đặt (nếu chưa chạy): composer install && cp .env.example .env && php artisan key:generate
+composer install
+cp .env.example .env
+php artisan key:generate
+# Đảm bảo cấu hình CSDL MySQL và GEMINI_API_KEY trong file .env
+php artisan migrate
 php artisan serve
 ```
+*(API Server sẽ chạy tại `http://127.0.0.1:8000`)*
 
-_(Backend sẽ chạy ở `http://127.0.0.1:8000`)_
-
-### Chạy Frontend
-
+### 2. POS Frontend (Flutter)
 ```bash
 cd pos-fe
 flutter pub get
 flutter run
 ```
 
-_(Yêu cầu API backend đang chạy ở `localhost:8000` để các tính năng đồng bộ hoàn hảo)._
+### 3. Web Admin (Vue 3)
+```bash
+cd cafe-admin
+npm install
+npm run dev
+```
+*(Dashboard chạy tại `http://localhost:5174`)*
+
+### 4. Customer Web QR Order (Vue 3)
+```bash
+cd cafe-web-order
+npm install
+npm run dev
+```
 
 ---
-
-_Tài liệu này được tổng hợp để theo dõi tiến độ hoàn thành các tính năng kết nối giữa 2 hệ thống Frontend và Backend cho đồ án Smart Cafe POS._
+*Dự án là nền tảng quản lý được chuẩn hóa kiến trúc với định hướng tích hợp AI làm cốt lõi nhằm nâng cao năng lực vận hành và tối ưu hóa lợi nhuận.*

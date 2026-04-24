@@ -5,6 +5,7 @@ import 'orders/order_list_view.dart';
 import 'order_history_view.dart';
 import 'account_view.dart';
 import 'inventory_view.dart';
+import 'table_qr_view.dart';
 import 'viewmodels/auth_viewmodel.dart';
 
 class MainLayout extends StatefulWidget {
@@ -33,6 +34,7 @@ class _MainLayoutState extends State<MainLayout> {
                 OrderHistoryView(),
                 InventoryView(),
                 AccountView(),
+                TableQrView(),
               ],
             ),
           ),
@@ -68,6 +70,7 @@ class _MainLayoutState extends State<MainLayout> {
                   _buildSidebarIcon(Icons.history, 2, tooltip: 'Lịch sử đơn'),
                   _buildSidebarIcon(Icons.inventory_2_outlined, 3, tooltip: 'Tồn kho'),
                   _buildSidebarIcon(Icons.person_outline, 4, tooltip: 'Tài khoản'),
+                  _buildSidebarIcon(Icons.qr_code_2, 5, tooltip: 'QR Bàn'),
                   const SizedBox(height: 24),
                 ],
               ),

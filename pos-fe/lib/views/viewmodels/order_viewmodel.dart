@@ -35,18 +35,15 @@ class OrderViewModel extends ChangeNotifier {
 
   List<DonHang> get pendingPaymentOrders {
     return _orders.where((o) => 
-      o.trangThaiDon == 'hoan_thanh_pha_che' && 
+      (o.trangThaiDon == 'hoan_thanh' || o.trangThaiDon == 'hoàn_thành') && 
       (o.trangThaiThanhToan != 'da_thanh_toan' && o.trangThaiThanhToan != 'đã_thanh_toan')
     ).toList();
   }
 
   List<DonHang> get completedOrders {
     var list = _orders.where((o) => 
-      o.trangThaiDon == 'hoan_thanh' || 
-      o.trangThaiDon == 'hoàn_thành' ||
-      // Safeguard: Mọi đơn đã thanh toán hoàn toàn nếu lọt khỏi Xử lý đơn đều được đếm vào lịch sử
-      o.trangThaiThanhToan == 'da_thanh_toan' || 
-      o.trangThaiThanhToan == 'đã_thanh_toan'
+      (o.trangThaiDon == 'hoan_thanh' || o.trangThaiDon == 'hoàn_thành') &&
+      (o.trangThaiThanhToan == 'da_thanh_toan' || o.trangThaiThanhToan == 'đã_thanh_toan')
     ).toList();
     list.sort((a, b) {
       final dA = a.createdAt != null ? DateTime.tryParse(a.createdAt!) ?? DateTime.now() : DateTime.now();
@@ -88,7 +85,7 @@ class OrderViewModel extends ChangeNotifier {
         tongTien: oldOrder.tongTien,
         phuongThucThanhToan: oldOrder.phuongThucThanhToan,
         trangThaiThanhToan: oldOrder.trangThaiThanhToan,
-        trangThaiDon: 'hoan_thanh_pha_che',
+        trangThaiDon: 'hoan_thanh',
         createdAt: oldOrder.createdAt,
         updatedAt: DateTime.now().toUtc().toIso8601String(),
         chiTietDonHangs: oldOrder.chiTietDonHangs,
@@ -98,7 +95,7 @@ class OrderViewModel extends ChangeNotifier {
     }
 
     try {
-      final success = await _apiService.updateOrderStatus(maDonHang, 'hoan_thanh_pha_che');
+      final success = await _apiService.updateOrderStatus(maDonHang, 'hoan_thanh');
       if (!success && oldOrder != null) {
         _orders[index] = oldOrder; // rollback if fail
         notifyListeners();

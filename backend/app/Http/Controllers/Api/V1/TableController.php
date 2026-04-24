@@ -35,4 +35,26 @@ class TableController extends Controller
             'data' => $data,
         ]);
     }
+
+    public function show($ma_ban)
+    {
+        $ban = \App\Models\Ban::find($ma_ban);
+        
+        if (!$ban) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy bàn',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Lấy thông tin bàn thành công',
+            'data' => [
+                'ma_ban' => $ban->ma_ban,
+                'ten_ban' => $ban->ten_ban,
+                'trang_thai' => $ban->trang_thai,
+            ]
+        ]);
+    }
 }
