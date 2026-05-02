@@ -56,7 +56,7 @@ const userInitials = computed(() => {
   position: sticky;
   top: 0;
   height: var(--topbar-height);
-  background: rgba(15, 23, 42, 0.85);
+  background: rgba(255, 255, 255, 0.85); /* Light theme topbar */
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border-color);
   display: flex;

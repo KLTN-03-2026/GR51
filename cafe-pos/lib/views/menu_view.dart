@@ -34,7 +34,7 @@ class _MenuViewState extends State<MenuView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: const Color(0xFFFDFBF7),
       body: Row(
         children: [
           Expanded(
@@ -535,11 +535,11 @@ class _MenuViewState extends State<MenuView> {
                         }
                       },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E293B), // Slate/Dark Blue
+                    backgroundColor: const Color(0xFFFFFFFF), // Slate/Dark Blue
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Gửi pha chế', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                  child: const Text('Gửi pha chế', style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ),
               const SizedBox(height: 12),

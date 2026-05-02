@@ -38,17 +38,40 @@ class CartItem {
 
   // Nâng cấp hàm xuất JSON để đẩy lên API
   Map<String, dynamic> toJson() {
+    String finalGhiChu = ghiChu ?? '';
+    List<String> parts = [];
+    
+    if (selectedSize != null && selectedSize!['ten_kich_co'] != null) {
+      parts.add('Size: ${selectedSize!['ten_kich_co']}');
+    }
+    
+    if (selectedToppings.isNotEmpty) {
+      final toppingNames = selectedToppings.map((t) => t['ten_topping']).where((n) => n != null).join(', ');
+      if (toppingNames.isNotEmpty) {
+        parts.add('Topping: $toppingNames');
+      }
+    }
+    
+    if (parts.isNotEmpty) {
+      String prefix = parts.join(' | ');
+      if (finalGhiChu.isNotEmpty) {
+        finalGhiChu = '$prefix. $finalGhiChu';
+      } else {
+        finalGhiChu = prefix;
+      }
+    }
+
     return {
       'ma_mon': mon.maMon,
       'so_luong': soLuong,
-      'don_gia': mon.gia,
-      'ghi_chu': ghiChu ?? '',
+      'don_gia': (thanhTien / soLuong),
+      'ghi_chu': finalGhiChu,
       'ma_kich_co': selectedSize?['ma_kich_co'],
       'gia_cong_them': selectedSize?['gia_cong_them'],
       'toppings': selectedToppings.map((t) => { 
         'ma_topping': t['ma_topping'],
         'gia_tien': t['gia_tien'],
-        'so_luong': 1 // Hiện tại mỗi topping khách thường chọn 1 phần
+        'so_luong': 1
       }).toList(),
     };
   }

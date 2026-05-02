@@ -52,14 +52,28 @@ class DonHangController extends Controller
             ]);
 
             foreach ($chiTiets as $item) {
+                $maChiTiet = uniqid('CT_');
                 ChiTietDonHang::create([
-                    'ma_chi_tiet' => uniqid('CT_'),
+                    'ma_chi_tiet' => $maChiTiet,
                     'ma_don_hang' => $maDonHang,
                     'ma_mon' => $item['ma_mon'],
+                    'ma_kich_co' => $item['ma_kich_co'] ?? null,
                     'so_luong' => $item['so_luong'],
                     'don_gia' => $item['don_gia'],
                     'ghi_chu' => $item['ghi_chu'] ?? null,
                 ]);
+
+                if (isset($item['toppings']) && is_array($item['toppings'])) {
+                    foreach ($item['toppings'] as $tp) {
+                        \App\Models\ChiTietTopping::create([
+                            'ma_chi_tiet_topping' => uniqid('CTT_'),
+                            'ma_chi_tiet' => $maChiTiet,
+                            'ma_topping' => is_array($tp) ? ($tp['ma_topping'] ?? null) : $tp,
+                            'so_luong' => is_array($tp) ? ($tp['so_luong'] ?? 1) : 1,
+                            'gia_tien' => is_array($tp) ? ($tp['gia_tien'] ?? 0) : 0,
+                        ]);
+                    }
+                }
             }
 
             DB::commit();
@@ -258,14 +272,26 @@ class DonHangController extends Controller
             ]);
 
             foreach ($chiTiets as $item) {
+                $maChiTiet = uniqid('CT_');
                 ChiTietDonHang::create([
-                    'ma_chi_tiet' => uniqid('CT_'),
+                    'ma_chi_tiet' => $maChiTiet,
                     'ma_don_hang' => $maDonHang,
                     'ma_mon' => $item['ma_mon'],
+                    'ma_kich_co' => $item['ma_kich_co'] ?? null,
                     'so_luong' => $item['so_luong'],
                     'don_gia' => $item['don_gia'],
                     'ghi_chu' => $item['ghi_chu'] ?? null,
                 ]);
+
+                if (isset($item['toppings']) && is_array($item['toppings'])) {
+                    foreach ($item['toppings'] as $tp) {
+                        \App\Models\ChiTietTopping::create([
+                            'ma_chi_tiet_topping' => uniqid('CTT_'),
+                            'ma_chi_tiet' => $maChiTiet,
+                            'ma_topping' => $tp['ma_topping'] ?? $tp,
+                        ]);
+                    }
+                }
             }
 
             DB::commit();

@@ -43,7 +43,7 @@ class _LoginViewState extends State<LoginView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA), // match existing app background
+      backgroundColor: const Color(0xFFFDFBF7), // match existing app background
       body: Center(
         child: SingleChildScrollView(
           child: Container(
@@ -69,7 +69,7 @@ class _LoginViewState extends State<LoginView> {
                   const Icon(Icons.coffee, size: 60, color: Colors.orange),
                   const SizedBox(height: 16),
                   const Text(
-                    'Smart Cafe POS',
+                    'GUNPLA COFFE LOGIN',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 24,

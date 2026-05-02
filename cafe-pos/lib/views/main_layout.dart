@@ -21,7 +21,7 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: const Color(0xFFFDFBF7),
       body: Row(
         children: [
           _buildLeftSidebar(),
@@ -51,7 +51,7 @@ class _MainLayoutState extends State<MainLayout> {
         children: [
           const SizedBox(height: 24),
           const Text(
-            'SMART\nPOS',
+            'GUNPLA\nCOFFE',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontWeight: FontWeight.bold,

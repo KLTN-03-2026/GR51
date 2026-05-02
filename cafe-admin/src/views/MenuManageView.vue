@@ -272,7 +272,7 @@ onMounted(() => { loadDanhMucs(); loadMons(); loadKichCos(); loadToppings(); loa
 <style scoped>
 .tabs { display: flex; gap: 4px; margin-bottom: 24px; background: var(--bg-secondary); border-radius: var(--radius-lg); padding: 4px; }
 .tab-btn { flex: 1; padding: 10px; border: none; background: none; color: var(--text-secondary); font-weight: 500; font-size: 0.88rem; border-radius: var(--radius-md); cursor: pointer; transition: all var(--transition-fast); }
-.tab-btn.active { background: var(--accent); color: #0f172a; font-weight: 600; }
+.tab-btn.active { background: var(--accent); color: #FFFFFF; font-weight: 600; }
 .tab-btn:hover:not(.active) { background: var(--bg-tertiary); }
 .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
 .toolbar h3 { font-size: 1rem; }

@@ -1,6 +1,6 @@
-# SMART CAFE - Nền Tảng Số Hóa Quản Lý Quán Cafe Tích Hợp AI
+# GUNPLA CAFE - Nền Tảng Số Hóa Quản Lý Quán Cafe Tích Hợp AI
 
-Smart Cafe là một hệ sinh thái quản lý quán cafe và điểm bán hàng (POS) toàn diện, hiện đại. Dự án cung cấp giải pháp chuyển đổi số sâu rộng từ khâu gọi món, pha chế, thanh toán, quản lý kho tự động đến phân tích dữ liệu thông minh bằng Trợ lý AI.
+Gunpla Cafe là một hệ sinh thái quản lý quán cafe và điểm bán hàng (POS) toàn diện, hiện đại. Dự án cung cấp giải pháp chuyển đổi số sâu rộng từ khâu gọi món, pha chế, thanh toán, quản lý kho tự động đến phân tích dữ liệu thông minh bằng Trợ lý AI.
 
 Hệ thống được thiết kế theo kiến trúc Client-Server, bao gồm **4 phân hệ chính**:
 
@@ -18,11 +18,12 @@ Hệ thống được thiết kế theo kiến trúc Client-Server, bao gồm **
 - **Công nghệ:** Laravel 12 (PHP 8.x), Eloquent ORM, MySQL, Laravel Sanctum.
 - **Tính năng nổi bật:**
   - **Cấu hình Thực đơn (Menu):** Quản lý chi tiết Món ăn, Kích cỡ (Size), Topping và Công thức pha chế (Recipe).
-  - **Trừ Kho Tự Động (Auto-deduction):** Sử dụng Database Transaction tự động tính toán và trừ số lượng nguyên liệu chuẩn xác dựa trên công thức ngay khi đơn hàng chuyển trạng thái "Đã pha chế", giải quyết triệt để vấn đề âm kho.
-  - **Xử lý Luồng Đơn hàng:** Xử lý đa dạng các nguồn đơn (tại quầy, quét mã QR), hỗ trợ thanh toán tiền mặt/chuyển khoản ngân hàng.
-  - **AI Integration Logic:** Tích hợp logic xử lý và tổng hợp dữ liệu thực tế (tồn kho, doanh thu, top món bán chạy) thành ngữ cảnh (context) để gửi sang Google Gemini API.
-  - **Quản lý Ca làm việc:** Theo dõi mở ca, kết ca, đối soát doanh thu.
-  - **Hệ thống Đánh giá:** Xử lý và lưu trữ thông tin đánh giá dịch vụ từ khách hàng sau khi thanh toán.
+  - **Hệ thống Thuế (Tax System):** Tính toán thuế linh hoạt, cập nhật giá trị thuế cho từng đơn hàng nhằm phục vụ báo cáo tài chính chính xác.
+  - **Trừ Kho Tự Động & Chống Âm Kho:** Tự động tính toán và trừ nguyên liệu dựa trên công thức khi đơn hàng "Đã pha chế". Tích hợp validation nghiêm ngặt ngăn chặn triệt để tình trạng tồn kho âm.
+  - **Xử lý Luồng Đơn hàng:** Xử lý đa dạng các nguồn đơn (tại quầy, QR code), hỗ trợ thanh toán tiền mặt/chuyển khoản ngân hàng, tính toán chính xác giá tiền bao gồm cả topping.
+  - **AI Integration Logic:** Cung cấp dải ngữ cảnh dữ liệu toàn diện (bao gồm giao dịch chi tiết, doanh thu theo ngày/tháng) cho Google Gemini API để thực hiện các phân tích kinh doanh chuyên sâu.
+  - **Quản lý Ca làm việc:** Theo dõi mở ca, kết ca, đối soát doanh thu và tối ưu hóa luồng giao ca.
+  - **Hệ thống Đánh giá:** Xử lý và lưu trữ thông tin phản hồi, đánh giá dịch vụ (1-5 sao) từ khách hàng.
 
 ## 2. Phần Mềm Máy Bán Hàng POS (`/pos-fe`)
 
@@ -30,10 +31,10 @@ Giao diện ứng dụng dành cho nhân viên thu ngân và Barista, tối ưu 
 
 - **Công nghệ:** Flutter (SDK 3.10+), Provider (State Management), Dio/HTTP Client.
 - **Tính năng nổi bật:**
-  - **Giao diện Bán hàng (Sales):** Thao tác gọi món nhanh chóng, chọn size/topping trực quan. Hỗ trợ hiển thị Popup mã QR chuyển khoản ngân hàng ngay trên màn hình thanh toán.
-  - **Màn hình Pha chế KDS (Kitchen Display System):** Giúp Barista theo dõi đơn hàng theo thời gian thực. Đặc biệt tích hợp Popup xem nhanh **Công thức pha chế** ngay tại quầy.
-  - **Theo dõi Tồn kho (Inventory):** Giám sát tình trạng nguyên liệu qua hệ thống thẻ màu trực quan (Đỏ - Hết hàng, Cam - Sắp hết, Xanh - An toàn).
-  - **Lịch sử & Giao ca:** Quản lý lịch sử giao dịch chi tiết, hỗ trợ tính toán chốt ca làm việc và đối soát tiền mặt cuối ngày.
+  - **Giao diện Bán hàng (Sales):** Thao tác gọi món nhanh chóng, chọn size/topping trực quan. Hiển thị rõ ràng thông tin Thuế và cung cấp Popup mã QR chuyển khoản ngay trên màn hình thanh toán.
+  - **Màn hình Pha chế KDS (Kitchen Display System):** Giúp Barista theo dõi đơn hàng theo thời gian thực. Tích hợp Popup xem nhanh **Công thức pha chế** ngay tại quầy.
+  - **Theo dõi Tồn kho (Inventory):** Giám sát tình trạng nguyên liệu qua hệ thống thẻ màu trực quan (Đỏ - Hết hàng, Cam - Sắp hết, Xanh - An toàn), đảm bảo tính chính xác của dữ liệu kho.
+  - **Lịch sử & Quản lý Ca (Shift Management):** Quản lý lịch sử giao dịch chi tiết, tối ưu hóa quy trình chốt ca, đối soát tiền mặt cuối ngày và theo dõi ca làm việc chuyên sâu.
 
 ## 3. Web Admin Dashboard & Trợ Lý AI (`/cafe-admin`)
 

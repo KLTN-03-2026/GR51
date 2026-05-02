@@ -3,7 +3,7 @@
     <div class="login-card">
       <div class="login-header">
         <div class="login-logo">☕</div>
-        <h1>Smart Cafe</h1>
+        <h1>Admin DashBoard</h1>
         <p>Đăng nhập Admin Dashboard</p>
       </div>
 
@@ -157,7 +157,7 @@ async function handleLogin() {
   width: 20px;
   height: 20px;
   border: 2px solid rgba(15, 23, 42, 0.3);
-  border-top-color: #0f172a;
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }

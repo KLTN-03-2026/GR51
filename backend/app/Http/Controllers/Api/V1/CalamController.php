@@ -18,7 +18,7 @@ class CaLamController extends Controller
             'tien_mat_dau_ca' => 'required|numeric|min:0'
         ]);
 
-        $maNhanSu = $request->user() ? $request->user()->ma_nhan_su : 'NV01';
+        $maNhanSu = $request->user()->ma_nhan_su;
 
         // Kiểm tra xem nhân viên này có ca nào đang mở không (chống mở 2 ca cùng lúc)
         $caLamHienTai = CaLam::where('ma_nhan_su', $maNhanSu)
@@ -53,11 +53,11 @@ class CaLamController extends Controller
             'data' => $caLamMoi
         ], 201);
     }
+
     // 1. API Lấy thông tin ca làm hiện tại và thống kê doanh thu
     public function getCurrentShift(Request $request)
     {
-        // Lấy mã nhân sự (Giả sử đang test chưa có token thì hardcode mã nhân viên đang có trong DB của bạn, ví dụ 'NS01')
-        $maNhanSu = $request->user() ? $request->user()->ma_nhan_su : 'NV01';
+        $maNhanSu = $request->user()->ma_nhan_su;
 
         // Tìm ca làm đang mở của nhân viên này
         $caLam = CaLam::where('ma_nhan_su', $maNhanSu)
@@ -78,21 +78,32 @@ class CaLamController extends Controller
             ->where('created_at', '>=', $caLam->thoi_gian_bat_dau)
             ->get();
 
+        // Đếm đơn đang xử lý (pha chế, chờ xử lý)
+        $donDangXuLy = DonHang::where('ma_nhan_su', $maNhanSu)
+            ->whereIn('trang_thai_don', ['dang_pha', 'cho_xu_ly'])
+            ->where('created_at', '>=', $caLam->thoi_gian_bat_dau)
+            ->count();
+
         // Tính toán các con số để đẩy lên UI
         $tongSoDon = $donHangs->count();
         $tongDoanhThu = $donHangs->sum('tong_tien');
         $tienMat = $donHangs->where('phuong_thuc_thanh_toan', 'tien_mat')->sum('tong_tien');
-        $chuyenKhoan = $donHangs->where('phuong_thuc_thanh_toan', 'chuyen_khoan')->sum('tong_tien'); // Hoặc 'the' / 'card' tùy DB bạn quy định
+        $chuyenKhoan = $donHangs->where('phuong_thuc_thanh_toan', 'chuyen_khoan')->sum('tong_tien');
         $trungBinhDon = $tongSoDon > 0 ? $tongDoanhThu / $tongSoDon : 0;
         $nhanVien = \App\Models\NhanSu::where('ma_nhan_su', $maNhanSu)->first();
         $hoTen = $nhanVien ? $nhanVien->ho_ten : 'Nhân viên ẩn danh';
         $vaiTro = $nhanVien ? $nhanVien->vai_tro : 'nhan_vien';
+
+        // Tiền mặt hệ thống = tiền đầu ca + tiền bán được bằng tiền mặt
+        $tienMatHeThong = (float)$caLam->tien_mat_dau_ca + (float)$tienMat;
 
         return response()->json([
             'status' => 'success',
             'data' => [
                 'ma_ca_lam' => $caLam->ma_ca_lam,
                 'thoi_gian_bat_dau' => $caLam->thoi_gian_bat_dau,
+                'tien_mat_dau_ca' => (float)$caLam->tien_mat_dau_ca,
+                'tien_mat_he_thong' => $tienMatHeThong,
                 'nhan_vien' => [
                     'ho_ten' => $hoTen,
                     'vai_tro' => $vaiTro,
@@ -100,9 +111,10 @@ class CaLamController extends Controller
                 'thong_ke' => [
                     'tong_doanh_thu' => (float)$tongDoanhThu,
                     'tong_so_don' => $tongSoDon,
-                    'trung_binh_don' => round((float)$trungBinhDon, 2),
+                    'trung_binh_don' => round((float)$trungBinhDon, 0),
                     'tien_mat' => (float)$tienMat,
-                    'chuyen_khoan' => (float)$chuyenKhoan
+                    'chuyen_khoan' => (float)$chuyenKhoan,
+                    'don_dang_xu_ly' => $donDangXuLy,
                 ]
             ]
         ], 200);
@@ -111,7 +123,12 @@ class CaLamController extends Controller
     // 2. API Thực hiện Kết ca
     public function closeShift(Request $request)
     {
-        $maNhanSu = $request->user() ? $request->user()->ma_nhan_su : 'NV01';
+        $request->validate([
+            'tien_mat_thuc_te' => 'required|numeric|min:0',
+            'ghi_chu' => 'nullable|string|max:500',
+        ]);
+
+        $maNhanSu = $request->user()->ma_nhan_su;
 
         try {
             DB::beginTransaction();
@@ -128,8 +145,23 @@ class CaLamController extends Controller
                 ], 404);
             }
 
+            // Kiểm tra đơn đang xử lý
+            $donDangXuLy = DonHang::where('ma_nhan_su', $maNhanSu)
+                ->whereIn('trang_thai_don', ['dang_pha', 'cho_xu_ly'])
+                ->where('created_at', '>=', $caLam->thoi_gian_bat_dau)
+                ->count();
+
+            if ($donDangXuLy > 0) {
+                DB::rollBack();
+                return response()->json([
+                    'status' => 'error',
+                    'message' => "Còn $donDangXuLy đơn hàng đang xử lý. Vui lòng hoàn thành trước khi kết ca.",
+                    'don_dang_xu_ly' => $donDangXuLy,
+                ], 400);
+            }
+
             // Tính toán lại tiền hệ thống trước khi chốt
-            $tienMatHeThong = DonHang::where('ma_nhan_su', $maNhanSu)
+            $tienMatBanDuoc = DonHang::where('ma_nhan_su', $maNhanSu)
                 ->where('trang_thai_don', 'hoan_thanh')
                 ->where('phuong_thuc_thanh_toan', 'tien_mat')
                 ->where('created_at', '>=', $caLam->thoi_gian_bat_dau)
@@ -140,10 +172,16 @@ class CaLamController extends Controller
                 ->where('created_at', '>=', $caLam->thoi_gian_bat_dau)
                 ->sum('tong_tien');
 
+            $tienMatHeThong = $tienMatBanDuoc + $caLam->tien_mat_dau_ca;
+            $tienMatThucTe = $request->input('tien_mat_thuc_te', 0);
+            $chenhLech = $tienMatThucTe - $tienMatHeThong;
+
             // Cập nhật chốt sổ ca làm
             $caLam->thoi_gian_ket_thuc = Carbon::now();
-            $caLam->tien_mat_he_thong = $tienMatHeThong + $caLam->tien_mat_dau_ca; // Tiền mặt trong két = Tiền đầu ca + Tiền bán được
+            $caLam->tien_mat_he_thong = $tienMatHeThong;
+            $caLam->tien_mat_thuc_te = $tienMatThucTe;
             $caLam->tong_doanh_thu = $tongDoanhThu;
+            $caLam->ghi_chu = $request->input('ghi_chu');
             $caLam->trang_thai = 'da_ket_thuc';
             $caLam->save();
 
@@ -152,7 +190,12 @@ class CaLamController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'Kết ca thành công!',
-                'data' => $caLam
+                'data' => [
+                    'ca_lam' => $caLam,
+                    'chenh_lech' => $chenhLech,
+                    'tien_mat_he_thong' => (float)$tienMatHeThong,
+                    'tien_mat_thuc_te' => (float)$tienMatThucTe,
+                ]
             ], 200);
         } catch (\Exception $e) {
             DB::rollBack();

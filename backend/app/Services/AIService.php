@@ -62,7 +62,7 @@ class AIService
             ];
 
             // 5. Gọi Gemini API (với retry và fallback model)
-            $models = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+            $models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite'];
             $reply = null;
 
             foreach ($models as $modelName) {
@@ -122,7 +122,6 @@ class AIService
             ]);
 
             return $reply;
-
         } catch (\Exception $e) {
             Log::error('AIService error: ' . $e->getMessage());
             return 'Xin lỗi, đã xảy ra lỗi khi xử lý câu hỏi của bạn. Vui lòng thử lại.';
@@ -169,6 +168,34 @@ class AIService
             $doanhThuTungNgay[] = $date->format('d/m') . ": " . number_format($rev) . "đ ({$orders} đơn)";
         }
 
+        // Tổng doanh thu toàn thời gian
+        $tongDoanhThuToanThoiGian = DonHang::where('trang_thai_thanh_toan', 'da_thanh_toan')->sum('tong_tien');
+        $tongDonToanThoiGian = DonHang::count();
+
+        // Doanh thu theo tháng (6 tháng gần nhất)
+        $doanhThuTheoThang = DB::table('don_hangs')
+            ->selectRaw('DATE_FORMAT(created_at, \'%m/%Y\') as month, SUM(tong_tien) as total, COUNT(*) as orders')
+            ->where('trang_thai_thanh_toan', 'da_thanh_toan')
+            ->groupBy('month')
+            ->orderByDesc(DB::raw('MAX(created_at)'))
+            ->limit(6)
+            ->get()
+            ->map(function ($item) {
+                return "Tháng {$item->month}: " . number_format($item->total) . "đ ({$item->orders} đơn)";
+            });
+
+        // 10 ngày hoạt động gần nhất có doanh thu
+        $doanhThuCacNgayGanNhat = DB::table('don_hangs')
+            ->selectRaw('DATE(created_at) as date, SUM(tong_tien) as total, COUNT(*) as orders')
+            ->where('trang_thai_thanh_toan', 'da_thanh_toan')
+            ->groupBy('date')
+            ->orderByDesc('date')
+            ->limit(10)
+            ->get()
+            ->map(function ($item) {
+                return Carbon::parse($item->date)->format('d/m/Y') . ": " . number_format($item->total) . "đ ({$item->orders} đơn)";
+            });
+
         // --- Đơn hàng đang xử lý ---
         $donDangPha = DonHang::where('trang_thai_don', 'dang_pha')
             ->whereDate('created_at', $today)->count();
@@ -176,11 +203,10 @@ class AIService
         $donChoXacNhan = DonHang::where('trang_thai_don', 'cho_xac_nhan')
             ->whereDate('created_at', $today)->count();
 
-        // --- Top món bán chạy (7 ngày) ---
+        // --- Top món bán chạy (Toàn thời gian) ---
         $topMon = ChiTietDonHang::select('ma_mon', DB::raw('SUM(so_luong) as tong_ban'), DB::raw('SUM(so_luong * don_gia) as tong_doanh_thu'))
-            ->whereHas('donHang', function ($q) use ($weekAgo) {
-                $q->whereDate('created_at', '>=', $weekAgo)
-                  ->where('trang_thai_thanh_toan', 'da_thanh_toan');
+            ->whereHas('donHang', function ($q) {
+                $q->where('trang_thai_thanh_toan', 'da_thanh_toan');
             })
             ->groupBy('ma_mon')
             ->orderByDesc('tong_ban')
@@ -193,10 +219,10 @@ class AIService
                 return "- {$tenMon}: {$item->tong_ban} ly, doanh thu " . number_format($item->tong_doanh_thu) . "đ (giá bán: {$giaBan}đ)";
             });
 
-        // Món bán ít nhất
+        // Món bán ít nhất (Toàn thời gian)
         $monBanIt = ChiTietDonHang::select('ma_mon', DB::raw('SUM(so_luong) as tong_ban'))
-            ->whereHas('donHang', function ($q) use ($weekAgo) {
-                $q->whereDate('created_at', '>=', $weekAgo);
+            ->whereHas('donHang', function ($q) {
+                $q->where('trang_thai_thanh_toan', 'da_thanh_toan');
             })
             ->groupBy('ma_mon')
             ->orderBy('tong_ban')
@@ -208,11 +234,25 @@ class AIService
                 return "- {$tenMon}: chỉ {$item->tong_ban} ly";
             });
 
+        // --- 5 đơn hàng gần nhất (để phân tích chi tiết) ---
+        $donHangGanNhat = DonHang::with(['chiTietDonHangs.mon'])
+            ->where('trang_thai_thanh_toan', 'da_thanh_toan')
+            ->orderByDesc('created_at')
+            ->limit(5)
+            ->get()
+            ->map(function($don) {
+                $items = $don->chiTietDonHangs->map(function($ct) {
+                    $ten = $ct->mon ? $ct->mon->ten_mon : 'N/A';
+                    return "{$ten} (x{$ct->so_luong})";
+                })->implode(', ');
+                return "- Ngày " . Carbon::parse($don->created_at)->format('d/m/Y H:i') . " - Đơn {$don->ma_don_hang}: " . number_format($don->tong_tien) . "đ [Gồm: {$items}]";
+            });
+
         // --- Tồn kho ---
         $nguyenLieuCanhBao = NguyenLieu::where('trang_thai', 'hoat_dong')
             ->where(function ($q) {
                 $q->where('ton_kho', '<=', 0)
-                  ->orWhereColumn('ton_kho', '<=', 'muc_canh_bao');
+                    ->orWhereColumn('ton_kho', '<=', 'muc_canh_bao');
             })
             ->select('ten_nguyen_lieu', 'don_vi_tinh', 'ton_kho', 'muc_canh_bao')
             ->orderBy('ton_kho')
@@ -245,25 +285,30 @@ class AIService
         $context = "📊 DỮ LIỆU KINH DOANH SMART CAFE (Cập nhật: " . now()->format('H:i d/m/Y') . ")\n\n";
 
         $context .= "═══ DOANH THU ═══\n";
+        $context .= "Tổng doanh thu toàn thời gian: " . number_format($tongDoanhThuToanThoiGian) . "đ (Tổng đơn: {$tongDonToanThoiGian})\n";
         $context .= "Hôm nay: " . number_format($doanhThuHomNay) . "đ ({$tongDonHomNay} đơn)\n";
         $context .= "Hôm qua: " . number_format($doanhThuHomQua) . "đ ({$tongDonHomQua} đơn)\n";
-        $context .= "7 ngày qua: " . number_format($doanhThu7Ngay) . "đ ({$tongDon7Ngay} đơn)\n";
+        $context .= "7 ngày qua (theo lịch): " . number_format($doanhThu7Ngay) . "đ ({$tongDon7Ngay} đơn)\n";
         if ($doanhThuHomQua > 0) {
             $pctChange = round(($doanhThuHomNay - $doanhThuHomQua) / $doanhThuHomQua * 100, 1);
             $trend = $pctChange >= 0 ? "📈 +{$pctChange}%" : "📉 {$pctChange}%";
             $context .= "So với hôm qua: {$trend}\n";
         }
-        $context .= "\nDoanh thu chi tiết 7 ngày:\n" . implode("\n", $doanhThuTungNgay) . "\n";
+        $context .= "\nDoanh thu 10 ngày hoạt động gần nhất:\n" . $doanhThuCacNgayGanNhat->implode("\n") . "\n";
+        $context .= "\nDoanh thu theo tháng (6 tháng gần nhất):\n" . $doanhThuTheoThang->implode("\n") . "\n";
 
         $context .= "\n═══ ĐƠN HÀNG HIỆN TẠI ═══\n";
         $context .= "Đang pha chế: {$donDangPha} đơn\n";
         $context .= "Chờ xác nhận: {$donChoXacNhan} đơn\n";
 
-        $context .= "\n═══ TOP MÓN BÁN CHẠY (7 ngày) ═══\n";
+        $context .= "\n═══ CHI TIẾT ĐƠN HÀNG GẦN NHẤT ═══\n";
+        $context .= $donHangGanNhat->implode("\n") . "\n";
+
+        $context .= "\n═══ TOP MÓN BÁN CHẠY (Toàn thời gian) ═══\n";
         $context .= $topMon->implode("\n") . "\n";
 
         if ($monBanIt->isNotEmpty()) {
-            $context .= "\n═══ MÓN BÁN ÍT (7 ngày) ═══\n";
+            $context .= "\n═══ MÓN BÁN ÍT (Toàn thời gian) ═══\n";
             $context .= $monBanIt->implode("\n") . "\n";
         }
 

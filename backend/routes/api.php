@@ -12,6 +12,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/v1/don-hang', [\App\Http\Controllers\Api\V1\DonHangController::class, 'store']);
     Route::put('/v1/don-hang/{maDonHang}', [\App\Http\Controllers\Api\V1\DonHangController::class, 'update']);
     Route::put('/v1/don-hang/{maDonHang}/status', [\App\Http\Controllers\Api\V1\DonHangController::class, 'updateStatus']);
+
+    // Quản lý ca làm (Cần đăng nhập)
+    Route::get('/v1/ca-lam/hien-tai', [\App\Http\Controllers\Api\V1\CaLamController::class, 'getCurrentShift']);
+    Route::post('/v1/ca-lam/ket-ca', [\App\Http\Controllers\Api\V1\CaLamController::class, 'closeShift']);
+    Route::post('/v1/ca-lam/mo-ca', [\App\Http\Controllers\Api\V1\CaLamController::class, 'openShift']);
 });
 
 Route::get('/v1/menu', [\App\Http\Controllers\Api\V1\MenuController::class, 'index']);
@@ -24,10 +29,6 @@ Route::get('/v1/kho/ton-kho', [\App\Http\Controllers\Api\V1\KhoController::class
 Route::post('/v1/don-hang/qr', [\App\Http\Controllers\Api\V1\DonHangController::class, 'storeQr']);
 Route::get('/v1/don-hang/qr/{maDonHang}', [\App\Http\Controllers\Api\V1\DonHangController::class, 'showQr']);
 Route::post('/v1/danh-gia/qr', [\App\Http\Controllers\Api\V1\DanhGiaController::class, 'storeQr']);
-
-Route::get('/v1/ca-lam/hien-tai', [\App\Http\Controllers\Api\V1\CaLamController::class, 'getCurrentShift']);
-Route::post('/v1/ca-lam/ket-ca', [\App\Http\Controllers\Api\V1\CaLamController::class, 'closeShift']);
-Route::post('/v1/ca-lam/mo-ca', [\App\Http\Controllers\Api\V1\CaLamController::class, 'openShift']);
 
 // ============================================================
 // ADMIN ROUTES - Yêu cầu đăng nhập + vai trò quản lý

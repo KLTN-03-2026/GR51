@@ -41,7 +41,7 @@ class _OrderHistoryViewState extends State<OrderHistoryView> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: const Color(0xFFFDFBF7),
       body: Padding(
         padding: const EdgeInsets.all(32.0),
         child: Column(

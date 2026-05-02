@@ -32,7 +32,7 @@ class _InventoryViewState extends State<InventoryView> {
     final viewModel = context.watch<InventoryViewModel>();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: const Color(0xFFFDFBF7),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),

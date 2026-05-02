@@ -99,7 +99,7 @@ onMounted(() => { loadKV(); loadBans() })
 <style scoped>
 .tabs { display:flex;gap:4px;margin-bottom:24px;background:var(--bg-secondary);border-radius:var(--radius-lg);padding:4px;width:fit-content }
 .tab-btn { padding:10px 24px;border:none;background:none;color:var(--text-secondary);font-weight:500;border-radius:var(--radius-md);cursor:pointer;transition:all var(--transition-fast) }
-.tab-btn.active { background:var(--accent);color:#0f172a;font-weight:600 }
+.tab-btn.active { background:var(--accent);color:#FFFFFF;font-weight:600 }
 .toolbar { display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px }
 .toolbar-actions { display:flex;gap:10px }
 .filter-select { width:180px;padding:8px 12px }

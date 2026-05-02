@@ -350,37 +350,53 @@ class SmartOrderCard extends StatelessWidget {
   }
 
   Widget _buildTab1Footer(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: () async {
-          // Capture payment status before optimistic update
-          final isPaid = order.trangThaiThanhToan == 'da_thanh_toan' || order.trangThaiThanhToan == 'đã_thanh_toan';
-          
-          final success = await viewModel.completePreparation(order.maDonHang);
-          
-          if (success && context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  isPaid ? 'Đơn hàng đã hoàn tất và được lưu vào Lịch sử' : 'Đã pha xong. Đơn chờ thu tiền tại mục Chờ thanh toán',
-                  style: const TextStyle(fontWeight: FontWeight.bold)
-                ),
-                backgroundColor: isPaid ? Colors.green : Colors.orange,
-                duration: const Duration(seconds: 2),
-              ),
-            );
-          }
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.orange,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          elevation: 0,
+    final format = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('TỔNG TIỀN:', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+            Text(
+              format.format(order.tongTien),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.orange),
+            ),
+          ],
         ),
-        child: const Text('HOÀN THÀNH PHA CHẾ', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
-      ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () async {
+              // Capture payment status before optimistic update
+              final isPaid = order.trangThaiThanhToan == 'da_thanh_toan' || order.trangThaiThanhToan == 'đã_thanh_toan';
+              
+              final success = await viewModel.completePreparation(order.maDonHang);
+              
+              if (success && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      isPaid ? 'Đơn hàng đã hoàn tất và được lưu vào Lịch sử' : 'Đã pha xong. Đơn chờ thu tiền tại mục Chờ thanh toán',
+                      style: const TextStyle(fontWeight: FontWeight.bold)
+                    ),
+                    backgroundColor: isPaid ? Colors.green : Colors.orange,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              elevation: 0,
+            ),
+            child: const Text('HOÀN THÀNH PHA CHẾ', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+          ),
+        ),
+      ],
     );
   }
 
