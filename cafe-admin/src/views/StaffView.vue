@@ -11,12 +11,12 @@
     </div>
     <table class="data-table">
       <thead><tr><th>Mã</th><th>Họ tên</th><th>Tên đăng nhập</th><th>SĐT</th><th>Vai trò</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
-      <tbody><tr v-for="ns in items" :key="ns.ma_nhan_su">
+      <tbody><tr v-for="ns in items" :key="ns.id">
         <td style="color:var(--text-primary)">{{ ns.ma_nhan_su }}</td>
         <td style="color:var(--text-primary);font-weight:500">{{ ns.ho_ten }}</td>
         <td>{{ ns.ten_dang_nhap }}</td><td>{{ ns.so_dien_thoai }}</td>
         <td><span :class="ns.vai_tro==='quan_ly'?'badge badge-info':'badge badge-success'">{{ ns.vai_tro==='quan_ly'?'Quản lý':'Nhân viên' }}</span></td>
-        <td><span :class="ns.trang_thai==='hoat_dong'?'badge badge-success':'badge badge-error'">{{ ns.trang_thai==='hoat_dong'?'Hoạt động':'Khóa' }}</span></td>
+        <td><span :class="ns.trang_thai === 1 ? 'badge badge-success' : 'badge badge-error'">{{ ns.trang_thai === 1 ? 'Hoạt động' : 'Khóa' }}</span></td>
         <td class="action-cell">
           <button class="btn btn-ghost btn-sm" @click="openForm(ns)">Sửa</button>
           <button class="btn btn-secondary btn-sm" @click="openReset(ns)">🔑</button>
@@ -37,7 +37,7 @@
               <div class="form-group"><label>Tên đăng nhập</label><input v-model="form.ten_dang_nhap" :disabled="editing" /></div>
               <div class="form-group"><label>SĐT</label><input v-model="form.so_dien_thoai" /></div>
               <div class="form-group"><label>Vai trò</label><select v-model="form.vai_tro"><option value="nhan_vien">Nhân viên</option><option value="quan_ly">Quản lý</option></select></div>
-              <div class="form-group"><label>Trạng thái</label><select v-model="form.trang_thai"><option value="hoat_dong">Hoạt động</option><option value="khoa">Khóa</option></select></div>
+              <div class="form-group"><label>Trạng thái</label><select v-model="form.trang_thai"><option :value="1">Hoạt động</option><option :value="0">Khóa</option></select></div>
               <template v-if="!editing">
                 <div class="form-group"><label>Mật khẩu</label><input v-model="form.mat_khau" type="password" /></div>
                 <div class="form-group"><label>Mã PIN (4-6 số)</label><input v-model="form.ma_pin" /></div>
@@ -86,14 +86,14 @@ async function load() {
 
 function openForm(ns) {
   editing.value = !!ns; formErr.value = ''; saving.value = false
-  form.value = ns ? { ...ns } : { ma_nhan_su:'', ten_dang_nhap:'', ho_ten:'', so_dien_thoai:'', vai_tro:'nhan_vien', trang_thai:'hoat_dong', mat_khau:'', ma_pin:'' }
+  form.value = ns ? { ...ns } : { ma_nhan_su:'', ten_dang_nhap:'', ho_ten:'', so_dien_thoai:'', vai_tro:'nhan_vien', trang_thai: 1, mat_khau:'', ma_pin:'' }
   showModal.value = true
 }
 
 async function save() {
   saving.value = true; formErr.value = ''
   try {
-    if (editing.value) await api.updateNhanSu(form.value.ma_nhan_su, form.value)
+    if (editing.value) await api.updateNhanSu(form.value.id, form.value)
     else await api.createNhanSu(form.value)
     showModal.value = false
     toast.success(editing.value ? 'Cập nhật nhân sự thành công!' : 'Thêm nhân sự thành công!')
@@ -108,7 +108,7 @@ async function save() {
 async function del(ns) {
   const ok = await confirm(`Bạn có chắc muốn xóa nhân sự "${ns.ho_ten}"?`, 'Xóa nhân sự')
   if (!ok) return
-  try { await api.deleteNhanSu(ns.ma_nhan_su); toast.success('Đã xóa nhân sự!'); await load() } catch(e) { toast.error(e.response?.data?.message || 'Lỗi khi xóa') }
+  try { await api.deleteNhanSu(ns.id); toast.success('Đã xóa nhân sự!'); await load() } catch(e) { toast.error(e.response?.data?.message || 'Lỗi khi xóa') }
 }
 
 function openReset(ns) { resetUser.value = ns; newPw.value = ''; showReset.value = true }
@@ -116,7 +116,7 @@ function openReset(ns) { resetUser.value = ns; newPw.value = ''; showReset.value
 async function resetPw() {
   if (!newPw.value) { toast.warning('Vui lòng nhập mật khẩu mới'); return }
   try {
-    await api.resetPassword(resetUser.value.ma_nhan_su, { mat_khau_moi: newPw.value })
+    await api.resetPassword(resetUser.value.id, { mat_khau_moi: newPw.value })
     showReset.value = false
     toast.success('Đặt lại mật khẩu thành công!')
   } catch(e) { toast.error(e.response?.data?.message || 'Lỗi') }

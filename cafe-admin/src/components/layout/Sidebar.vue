@@ -3,7 +3,7 @@
     <!-- Logo -->
     <div class="sidebar-logo">
      
-      <span class="logo-text" v-show="!isCollapsed">Coffe Admin</span>
+      <span class="logo-text" v-show="!isCollapsed">Gunpla Coffe Admin</span>
     </div>
 
     <!-- Navigation -->

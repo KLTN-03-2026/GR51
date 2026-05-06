@@ -1,4 +1,5 @@
 class InventoryItem {
+  final int id;
   final String maNguyenLieu;
   final String tenNguyenLieu;
   final double tonKho;
@@ -6,6 +7,7 @@ class InventoryItem {
   final String donViTinh;
 
   InventoryItem({
+    required this.id,
     required this.maNguyenLieu,
     required this.tenNguyenLieu,
     required this.tonKho,
@@ -15,6 +17,7 @@ class InventoryItem {
 
   factory InventoryItem.fromJson(Map<String, dynamic> json) {
     return InventoryItem(
+      id: json['id'] ?? 0,
       maNguyenLieu: json['ma_nguyen_lieu'] ?? '',
       tenNguyenLieu: json['ten_nguyen_lieu'] ?? '',
       tonKho: double.tryParse(json['ton_kho']?.toString() ?? '0') ?? 0.0,

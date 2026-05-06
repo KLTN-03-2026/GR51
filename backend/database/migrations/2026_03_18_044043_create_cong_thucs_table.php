@@ -6,14 +6,12 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void {
         Schema::create('cong_thucs', function (Blueprint $table) {
-
-            $table->string('ma_mon');
-            $table->string('ma_nguyen_lieu');
+            $table->id();
+            $table->foreignId('mon_id')->constrained('mons')->onDelete('cascade');
+            $table->foreignId('nguyen_lieu_id')->constrained('nguyen_lieus')->onDelete('cascade');
             $table->decimal('so_luong_can', 10, 2);
-            $table->primary(['ma_mon', 'ma_nguyen_lieu']);
-            $table->foreign('ma_mon')->references('ma_mon')->on('mons');
-            $table->foreign('ma_nguyen_lieu')->references('ma_nguyen_lieu')->on('nguyen_lieus');
-                    $table->timestamps();
+            $table->unique(['mon_id', 'nguyen_lieu_id']);
+            $table->timestamps();
         });
     }
 

@@ -13,15 +13,18 @@ class DanhGiaController extends Controller
     public function storeQr(Request $request): JsonResponse
     {
         $request->validate([
-            'ma_don_hang' => 'required|string',
+            'don_hang_id' => 'required',
             'so_sao' => 'required|integer|min:1|max:5',
             'binh_luan' => 'nullable|string|max:1000'
         ]);
 
-        $maDonHang = $request->input('ma_don_hang');
+        $idOrCode = $request->input('don_hang_id');
 
         // Validate order exists
-        $donHang = DonHang::find($maDonHang);
+        $donHang = is_numeric($idOrCode) 
+            ? DonHang::find($idOrCode)
+            : DonHang::where('ma_don_hang', $idOrCode)->first();
+
         if (!$donHang) {
             return response()->json([
                 'success' => false,
@@ -30,7 +33,7 @@ class DanhGiaController extends Controller
         }
 
         // Check if already reviewed
-        $existing = DanhGia::where('ma_don_hang', $maDonHang)->first();
+        $existing = DanhGia::where('don_hang_id', $donHang->id)->first();
         if ($existing) {
             return response()->json([
                 'success' => false,
@@ -43,7 +46,7 @@ class DanhGiaController extends Controller
         try {
             $danhGia = DanhGia::create([
                 'ma_danh_gia' => $maDanhGia,
-                'ma_don_hang' => $maDonHang,
+                'don_hang_id' => $donHang->id,
                 'so_sao' => $request->input('so_sao'),
                 'binh_luan' => $request->input('binh_luan'),
             ]);

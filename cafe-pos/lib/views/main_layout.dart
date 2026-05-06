@@ -55,7 +55,7 @@ class _MainLayoutState extends State<MainLayout> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: Colors.orange,
+              color: const Color(0xFF6E4423),
               fontSize: 12,
               height: 1.2,
             ),
@@ -98,7 +98,7 @@ class _MainLayoutState extends State<MainLayout> {
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isSelected ? Colors.orange : Colors.transparent,
+              color: isSelected ? const Color(0xFF6E4423) : Colors.transparent,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(

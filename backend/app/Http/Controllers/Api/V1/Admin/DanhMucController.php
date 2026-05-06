@@ -9,22 +9,14 @@ use Illuminate\Http\Request;
 
 class DanhMucController extends Controller
 {
-    /**
-     * Danh sách tất cả danh mục
-     */
     public function index(): JsonResponse
     {
-        $danhMucs = DanhMuc::withCount('mons')->orderBy('ten_danh_muc')->get();
-
         return response()->json([
             'success' => true,
-            'data' => $danhMucs
+            'data' => DanhMuc::orderBy('ten_danh_muc')->get()
         ]);
     }
 
-    /**
-     * Thêm danh mục mới
-     */
     public function store(Request $request): JsonResponse
     {
         $request->validate([
@@ -32,64 +24,30 @@ class DanhMucController extends Controller
             'ten_danh_muc' => 'required|string|max:255',
         ]);
 
-        $danhMuc = DanhMuc::create([
-            'ma_danh_muc' => $request->input('ma_danh_muc'),
-            'ten_danh_muc' => $request->input('ten_danh_muc'),
-        ]);
+        $danhMuc = DanhMuc::create($request->all());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Thêm danh mục thành công',
-            'data' => $danhMuc
-        ], 201);
+        return response()->json(['success' => true, 'data' => $danhMuc], 201);
     }
 
-    /**
-     * Cập nhật danh mục
-     */
-    public function update(Request $request, $maDanhMuc): JsonResponse
+    public function update(Request $request, $id): JsonResponse
     {
-        $danhMuc = DanhMuc::find($maDanhMuc);
-        if (!$danhMuc) {
-            return response()->json(['success' => false, 'message' => 'Không tìm thấy danh mục'], 404);
-        }
+        $danhMuc = DanhMuc::find($id);
+        if (!$danhMuc) return response()->json(['success' => false, 'message' => 'Không tìm thấy'], 404);
 
-        $request->validate([
-            'ten_danh_muc' => 'required|string|max:255',
-        ]);
-
-        $danhMuc->update(['ten_danh_muc' => $request->input('ten_danh_muc')]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Cập nhật danh mục thành công',
-            'data' => $danhMuc
-        ]);
+        $danhMuc->update($request->all());
+        return response()->json(['success' => true, 'data' => $danhMuc]);
     }
 
-    /**
-     * Xóa danh mục
-     */
-    public function destroy($maDanhMuc): JsonResponse
+    public function destroy($id): JsonResponse
     {
-        $danhMuc = DanhMuc::find($maDanhMuc);
-        if (!$danhMuc) {
-            return response()->json(['success' => false, 'message' => 'Không tìm thấy danh mục'], 404);
-        }
+        $danhMuc = DanhMuc::find($id);
+        if (!$danhMuc) return response()->json(['success' => false, 'message' => 'Không tìm thấy'], 404);
 
-        // Kiểm tra có món nào thuộc danh mục không
         if ($danhMuc->mons()->count() > 0) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Không thể xóa danh mục đang có món ăn. Hãy xóa hoặc chuyển các món trước.'
-            ], 400);
+            return response()->json(['success' => false, 'message' => 'Danh mục đang có món ăn, không thể xóa'], 400);
         }
 
         $danhMuc->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Xóa danh mục thành công'
-        ]);
+        return response()->json(['success' => true, 'message' => 'Xóa thành công']);
     }
 }

@@ -66,7 +66,7 @@ class _LoginViewState extends State<LoginView> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(Icons.coffee, size: 60, color: Colors.orange),
+                  const Icon(Icons.coffee, size: 60, color: const Color(0xFF6E4423)),
                   const SizedBox(height: 16),
                   const Text(
                     'GUNPLA COFFE LOGIN',
@@ -137,7 +137,7 @@ class _LoginViewState extends State<LoginView> {
                       return ElevatedButton(
                         onPressed: auth.isLoading ? null : _handleLogin,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
+                          backgroundColor: const Color(0xFF6E4423),
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),

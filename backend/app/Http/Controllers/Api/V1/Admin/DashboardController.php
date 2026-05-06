@@ -7,7 +7,6 @@ use App\Models\DonHang;
 use App\Models\NguyenLieu;
 use App\Models\ChiTietDonHang;
 use App\Models\DanhGia;
-use App\Models\CaLam;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -27,7 +26,7 @@ class DashboardController extends Controller
             $donHangsHomNay = DonHang::whereDate('created_at', $today)->get();
 
             $tongDoanhThuHomNay = $donHangsHomNay
-                ->where('trang_thai_thanh_toan', 'da_thanh_toan')
+                ->where('trang_thai_thanh_toan', 1) // 1: Đã thanh toán
                 ->sum('tong_tien');
 
             $tongDonHomNay = $donHangsHomNay->count();
@@ -37,12 +36,12 @@ class DashboardController extends Controller
                 : 0;
 
             // === 2. Nguyên liệu cảnh báo ===
-            $nguyenLieuSapHet = NguyenLieu::where('trang_thai', 'hoat_dong')
+            $nguyenLieuSapHet = NguyenLieu::where('trang_thai', 1) // 1: Hoạt động
                 ->whereColumn('ton_kho', '<=', 'muc_canh_bao')
                 ->where('ton_kho', '>', 0)
                 ->count();
 
-            $nguyenLieuHetHang = NguyenLieu::where('trang_thai', 'hoat_dong')
+            $nguyenLieuHetHang = NguyenLieu::where('trang_thai', 1)
                 ->where('ton_kho', '<=', 0)
                 ->count();
 
@@ -51,7 +50,7 @@ class DashboardController extends Controller
             for ($i = 6; $i >= 0; $i--) {
                 $date = Carbon::today()->subDays($i);
                 $revenue = DonHang::whereDate('created_at', $date)
-                    ->where('trang_thai_thanh_toan', 'da_thanh_toan')
+                    ->where('trang_thai_thanh_toan', 1)
                     ->sum('tong_tien');
 
                 $doanhThu7Ngay[] = [
@@ -62,25 +61,25 @@ class DashboardController extends Controller
 
             // === 4. Đơn hàng theo trạng thái (hôm nay) ===
             $donTheoTrangThai = [
-                'dang_pha' => $donHangsHomNay->where('trang_thai_don', 'dang_pha')->count(),
-                'da_pha_che' => $donHangsHomNay->where('trang_thai_don', 'da_pha_che')->count(),
-                'hoan_thanh' => $donHangsHomNay->where('trang_thai_don', 'hoan_thanh')->count(),
-                'cho_xac_nhan' => $donHangsHomNay->where('trang_thai_don', 'cho_xac_nhan')->count(),
+                'cho_xu_ly' => $donHangsHomNay->where('trang_thai_don', 0)->count(),
+                'dang_pha' => $donHangsHomNay->where('trang_thai_don', 1)->count(),
+                'hoan_thanh' => $donHangsHomNay->where('trang_thai_don', 2)->count(),
+                'da_huy' => $donHangsHomNay->where('trang_thai_don', 3)->count(),
             ];
 
             // === 5. Top 5 món bán chạy hôm nay ===
-            $topMonBanChay = ChiTietDonHang::select('ma_mon', DB::raw('SUM(so_luong) as tong_ban'))
+            $topMonBanChay = ChiTietDonHang::select('mon_id', DB::raw('SUM(so_luong) as tong_ban'))
                 ->whereHas('donHang', function ($q) use ($today) {
                     $q->whereDate('created_at', $today);
                 })
-                ->groupBy('ma_mon')
+                ->groupBy('mon_id')
                 ->orderByDesc('tong_ban')
                 ->limit(5)
-                ->with('mon:ma_mon,ten_mon,hinh_anh,gia_ban')
+                ->with('mon')
                 ->get()
                 ->map(function ($item) {
                     return [
-                        'ma_mon' => $item->ma_mon,
+                        'id' => $item->mon_id,
                         'ten_mon' => $item->mon ? $item->mon->ten_mon : 'N/A',
                         'hinh_anh' => $item->mon ? $item->mon->hinh_anh : null,
                         'gia_ban' => $item->mon ? (float) $item->mon->gia_ban : 0,
@@ -89,35 +88,35 @@ class DashboardController extends Controller
                 });
 
             // === 6. 5 đơn hàng gần đây nhất ===
-            $donHangGanDay = DonHang::with(['ban:ma_ban,ten_ban', 'nhanSu:ma_nhan_su,ho_ten'])
+            $donHangGanDay = DonHang::with(['ban', 'nhanSu'])
                 ->orderByDesc('created_at')
                 ->limit(5)
                 ->get()
                 ->map(function ($dh) {
                     return [
+                        'id' => $dh->id,
                         'ma_don_hang' => $dh->ma_don_hang,
                         'ten_ban' => $dh->ban ? $dh->ban->ten_ban : 'Mang đi',
                         'nhan_vien' => $dh->nhanSu ? $dh->nhanSu->ho_ten : 'Khách QR',
                         'tong_tien' => (float) $dh->tong_tien,
-                        'trang_thai_don' => $dh->trang_thai_don,
-                        'trang_thai_thanh_toan' => $dh->trang_thai_thanh_toan,
+                        'trang_thai_don' => (int)$dh->trang_thai_don,
+                        'trang_thai_thanh_toan' => (int)$dh->trang_thai_thanh_toan,
                         'thoi_gian' => $dh->created_at->format('H:i d/m'),
                     ];
                 });
 
             // === 7. Cảnh báo tồn kho chi tiết ===
-            $canhBaoTonKho = NguyenLieu::where('trang_thai', 'hoat_dong')
+            $canhBaoTonKho = NguyenLieu::where('trang_thai', 1)
                 ->where(function ($q) {
                     $q->where('ton_kho', '<=', 0)
                       ->orWhereColumn('ton_kho', '<=', 'muc_canh_bao');
                 })
-                ->select('ma_nguyen_lieu', 'ten_nguyen_lieu', 'don_vi_tinh', 'ton_kho', 'muc_canh_bao')
                 ->orderBy('ton_kho', 'asc')
                 ->limit(10)
                 ->get()
                 ->map(function ($nl) {
                     return [
-                        'ma_nguyen_lieu' => $nl->ma_nguyen_lieu,
+                        'id' => $nl->id,
                         'ten_nguyen_lieu' => $nl->ten_nguyen_lieu,
                         'don_vi_tinh' => $nl->don_vi_tinh,
                         'ton_kho' => (float) $nl->ton_kho,
@@ -130,7 +129,7 @@ class DashboardController extends Controller
             $danhGiaTB = DanhGia::avg('so_sao');
 
             // === 9. Thống kê tổng hợp (tất cả thời gian) ===
-            $tongDoanhThuAll = DonHang::where('trang_thai_thanh_toan', 'da_thanh_toan')->sum('tong_tien');
+            $tongDoanhThuAll = DonHang::where('trang_thai_thanh_toan', 1)->sum('tong_tien');
             $tongDonAll = DonHang::count();
 
             return response()->json([
@@ -153,7 +152,6 @@ class DashboardController extends Controller
                     'top_mon_ban_chay' => $topMonBanChay,
                     'don_hang_gan_day' => $donHangGanDay,
                     'canh_bao_ton_kho' => $canhBaoTonKho,
-                    'danh_gia_trung_binh' => $danhGiaTB ? round((float) $danhGiaTB, 1) : null,
                 ]
             ]);
         } catch (\Exception $e) {

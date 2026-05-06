@@ -6,8 +6,8 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void {
         Schema::create('danh_mucs', function (Blueprint $table) {
-
-            $table->string('ma_danh_muc')->primary();
+            $table->id();
+            $table->string('ma_danh_muc')->unique();
             $table->string('ten_danh_muc');
                     $table->timestamps();
         });

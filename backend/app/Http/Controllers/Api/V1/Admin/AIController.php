@@ -25,7 +25,7 @@ class AIController extends Controller
         $message = $request->input('message');
 
         $aiService = new AIService();
-        $reply = $aiService->chat($message, $sessionId, $user->ma_nhan_su);
+        $reply = $aiService->chat($message, $sessionId, $user->id);
 
         return response()->json([
             'success' => true,

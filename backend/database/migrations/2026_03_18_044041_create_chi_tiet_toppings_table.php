@@ -6,13 +6,13 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void {
         Schema::create('chi_tiet_toppings', function (Blueprint $table) {
-
-            $table->string('ma_chi_tiet_topping')->primary();
-            $table->string('ma_chi_tiet');
-            $table->string('ma_topping');
-            $table->foreign('ma_chi_tiet')->references('ma_chi_tiet')->on('chi_tiet_don_hangs');
-            $table->foreign('ma_topping')->references('ma_topping')->on('toppings');
-                    $table->timestamps();
+            $table->id();
+            $table->string('ma_chi_tiet_topping')->unique();
+            $table->foreignId('chi_tiet_don_hang_id')->constrained('chi_tiet_don_hangs')->onDelete('cascade');
+            $table->foreignId('topping_id')->constrained('toppings')->onDelete('cascade');
+            $table->integer('so_luong')->default(1);
+            $table->decimal('gia_tien', 12, 2)->default(0);
+            $table->timestamps();
         });
     }
 

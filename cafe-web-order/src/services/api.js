@@ -1,6 +1,7 @@
 import axios from 'axios'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
+
 const apiClient = axios.create({
   baseURL: API_URL,
   headers: {
@@ -15,12 +16,12 @@ export default {
     return apiClient.get('/menu')
   },
   
-  // Lấy thông tin bàn (cần tạo thêm api này phía backend)
+  // Lấy thông tin bàn
   getTableInfo(maBan) {
     return apiClient.get(`/tables/${maBan}`)
   },
   
-  // Submit đơn hàng QR (cần tạo phía backend)
+  // Submit đơn hàng QR
   submitQrOrder(payload) {
     return apiClient.post('/don-hang/qr', payload)
   },
@@ -33,5 +34,10 @@ export default {
   // Gửi đánh giá
   submitReview(payload) {
     return apiClient.post('/danh-gia/qr', payload)
+  },
+
+  // Huỷ đơn hàng (khách hàng)
+  cancelOrderQr(maDonHang, lyDo = 'Khách hàng tự hủy') {
+    return apiClient.put(`/don-hang/qr/${maDonHang}/huy`, { ly_do_huy: lyDo })
   }
 }

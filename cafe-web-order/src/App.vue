@@ -4,17 +4,19 @@ import api from './services/api'
 import MenuView from './views/MenuView.vue'
 import CartView from './views/CartView.vue'
 import BottomNav from './components/layout/BottomNav.vue'
+import ToastNotify from './components/ToastNotify.vue'
 
 const currentTab = ref('menu')
 const tableCode = ref(null)
+const tableId = ref(null)
 const tableName = ref(null)
+const toastRef = ref(null)
 
 // Cart state
-const cart = ref([]) // Giỏ hàng nháp (Slide Drawer)
-const placedOrders = ref([]) // Lịch sử đơn hàng
+const cart = ref([]) 
+const placedOrders = ref([]) 
 
 onMounted(async () => {
-  // Parse table code from URL
   const urlParams = new URLSearchParams(window.location.search)
   const table = urlParams.get('table')
   if (table) {
@@ -23,6 +25,7 @@ onMounted(async () => {
       const res = await api.getTableInfo(table)
       if (res.data && res.data.success) {
         tableName.value = res.data.data.ten_ban
+        tableId.value = res.data.data.id
       }
     } catch(e) {
       console.log('Không lấy được tên bàn', e)
@@ -30,11 +33,19 @@ onMounted(async () => {
   }
 })
 
-// Provide state to children
+const toast = {
+  success: (msg) => toastRef.value?.showToast(msg, 'success'),
+  error: (msg) => toastRef.value?.showToast(msg, 'error'),
+  info: (msg) => toastRef.value?.showToast(msg, 'info'),
+  confirm: (msg) => toastRef.value?.showConfirm(msg),
+}
+
 provide('cart', cart)
 provide('placedOrders', placedOrders)
 provide('tableCode', tableCode)
+provide('tableId', tableId)
 provide('tableName', tableName)
+provide('toast', toast)
 
 const switchTab = (tab) => {
   currentTab.value = tab
@@ -46,12 +57,12 @@ const handleCheckout = async (paymentMethod) => {
 
   try {
     const payload = {
+      ban_id: tableId.value || null,
       ma_ban: tableCode.value || null,
-      loai_don: tableCode.value ? 'tai_ban' : 'mang_di',
+      loai_don: tableId.value ? 'tai_ban' : 'mang_di',
       phuong_thuc_thanh_toan: paymentMethod,
-      trang_thai_thanh_toan: 'chua_thanh_toan',
       chi_tiets: cart.value.map(item => ({
-        ma_mon: item.ma_mon,
+        mon_id: item.id,
         so_luong: item.quantity,
         don_gia: item.gia_ban,
         ghi_chu: item.ghi_chu || ''
@@ -60,45 +71,37 @@ const handleCheckout = async (paymentMethod) => {
 
     const res = await api.submitQrOrder(payload)
     if (res.data && res.data.success) {
-      placedOrders.value.unshift(res.data.data) // Đẩy lên đầu danh sách
-      cart.value.splice(0, cart.value.length) // Xoá giỏ nháp
-      switchTab('cart') // Mở trang trạng thái đơn hàng
+      placedOrders.value.unshift({ ...res.data.data, created_at_local: new Date().toISOString() })
+      cart.value.splice(0, cart.value.length)
+      switchTab('cart')
+      toast.success("Đặt món thành công! Vui lòng đợi nhân viên phục vụ.")
     }
   } catch (error) {
     console.error("Lỗi đặt hàng", error)
-    alert("Đã có lỗi xảy ra khi đặt hàng. Vui lòng thử lại sau!");
+    if (error.response?.status === 422) {
+      toast.error("Không đủ nguyên liệu để chế biến món này.")
+    } else if (error.response?.status === 403) {
+      toast.error(error.response.data.message || "Cửa hàng hiện đang tạm đóng.")
+    } else {
+      toast.error("Lỗi khi đặt hàng. Vui lòng thử lại sau!")
+    }
   }
 }
 </script>
 
 <template>
   <div class="app-container">
-    <!-- Active View -->
+    <ToastNotify ref="toastRef" />
     <Transition name="fade" mode="out-in">
       <MenuView v-if="currentTab === 'menu'" @submit-order="handleCheckout" />
       <CartView v-else-if="currentTab === 'cart'" @back="switchTab('menu')" />
     </Transition>
-
-    <!-- Navigation -->
     <BottomNav :current-tab="currentTab" @change-tab="switchTab" :cart-count="placedOrders.length" />
   </div>
 </template>
 
 <style scoped>
-.app-container {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: translateY(5px);
-}
+.app-container { display: flex; flex-direction: column; min-height: 100vh; }
+.fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; transform: translateY(5px); }
 </style>

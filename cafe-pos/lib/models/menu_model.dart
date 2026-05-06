@@ -25,6 +25,7 @@ class DanhMuc {
 }
 
 class Mon {
+  final int id;
   final String maMon;
   final String tenMon;
   final double gia;
@@ -33,6 +34,7 @@ class Mon {
   final bool isHetHang;
 
   Mon({
+    required this.id,
     required this.maMon,
     required this.tenMon,
     required this.gia,
@@ -43,12 +45,23 @@ class Mon {
 
   factory Mon.fromJson(Map<String, dynamic> json) {
     return Mon(
-      maMon: json['ma_mon']?.toString() ?? json['id']?.toString() ?? '',
+      id: json['id'] ?? 0,
+      maMon: json['ma_mon']?.toString() ?? '',
       tenMon: json['ten_mon'] ?? '',
       gia: double.tryParse(json['gia_ban'].toString()) ?? double.tryParse(json['gia'].toString()) ?? 0.0,
       hinhAnh: json['hinh_anh'],
       danhMucId: int.tryParse(json['danh_muc_id']?.toString() ?? '') ?? 0,
       isHetHang: json['is_het_hang'] == true || json['is_het_hang'] == 1,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'ma_mon': maMon,
+      'ten_mon': tenMon,
+      'gia_ban': gia,
+      'danh_muc_id': danhMucId,
+    };
   }
 }

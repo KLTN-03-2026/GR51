@@ -36,13 +36,13 @@ class KdsViewModel extends ChangeNotifier {
     });
   }
 
-  Future<void> completeOrder(String maDonHang) async {
+  Future<void> completeOrder(int orderId) async {
     // Xóa thẻ khỏi danh sách cục bộ để tạo hiệu ứng nhanh nhạy
-    kdsOrders.removeWhere((order) => order.maDonHang == maDonHang);
+    kdsOrders.removeWhere((order) => order.id == orderId);
     notifyListeners();
 
     try {
-      await _apiService.updateOrderStatus(maDonHang, 'hoan_thanh');
+      await _apiService.updateOrderStatus(orderId, 2); // 2: Hoàn thành
     } catch (e) {
       if (kDebugMode) print('Lỗi hoàn thành món KDS: $e');
       fetchOrders(showLoading: false); // Lấy lại dữ liệu nếu API lỗi

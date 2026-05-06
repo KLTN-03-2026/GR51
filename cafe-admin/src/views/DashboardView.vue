@@ -102,8 +102,8 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="dh in data.don_hang_gan_day" :key="dh.ma_don_hang">
-                  <td style="color:var(--text-primary);font-weight:500">{{ shortId(dh.ma_don_hang) }}</td>
+                <tr v-for="dh in data.don_hang_gan_day" :key="dh.id">
+                  <td style="color:var(--text-primary);font-weight:500">{{ dh.ma_don_hang.slice(-8) }}</td>
                   <td>{{ dh.ten_ban }}</td>
                   <td style="color:var(--accent)">{{ formatMoney(dh.tong_tien) }}</td>
                   <td><span :class="statusClass(dh.trang_thai_don)" class="badge">{{ statusLabel(dh.trang_thai_don) }}</span></td>
@@ -158,12 +158,12 @@ function shortId(id) {
 }
 
 function statusLabel(s) {
-  const m = { dang_pha: 'Đang pha', da_pha_che: 'Đã pha', hoan_thanh: 'Hoàn thành', cho_xac_nhan: 'Chờ xác nhận' }
+  const m = { 0: 'Chờ xác nhận', 1: 'Đang pha', 2: 'Hoàn thành', 3: 'Đã hủy' }
   return m[s] || s
 }
 
 function statusClass(s) {
-  const m = { dang_pha: 'badge-warning', da_pha_che: 'badge-info', hoan_thanh: 'badge-success', cho_xac_nhan: 'badge-error' }
+  const m = { 0: 'badge-error', 1: 'badge-warning', 2: 'badge-success', 3: 'badge-secondary' }
   return m[s] || ''
 }
 
@@ -202,10 +202,10 @@ function buildOrderChart() {
   new Chart(orderChartRef.value, {
     type: 'doughnut',
     data: {
-      labels: ['Đang pha', 'Đã pha', 'Hoàn thành', 'Chờ xác nhận'],
+      labels: ['Chờ xác nhận', 'Đang pha', 'Hoàn thành', 'Đã hủy'],
       datasets: [{
-        data: [d.dang_pha || 0, d.da_pha_che || 0, d.hoan_thanh || 0, d.cho_xac_nhan || 0],
-        backgroundColor: ['#f59e0b', '#3b82f6', '#10b981', '#ef4444'],
+        data: [d[0] || 0, d[1] || 0, d[2] || 0, d[3] || 0],
+        backgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#94a3b8'],
         borderWidth: 0,
       }]
     },

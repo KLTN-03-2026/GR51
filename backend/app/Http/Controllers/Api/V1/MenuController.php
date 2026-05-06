@@ -35,14 +35,18 @@ class MenuController extends Controller
         $sizes = KichCo::all();
         $toppings = Topping::all();
 
-        // 3. Gom tất cả vào chung mảng 'data'
+        // 3. Kiểm tra trạng thái cửa hàng (có ca làm nào đang mở không)
+        $isOpen = \App\Models\CaLam::where('trang_thai', 1)->exists();
+
+        // 4. Gom tất cả vào chung mảng 'data'
         return response()->json([
             'success' => true,
             'message' => 'Lấy thực đơn kèm tùy chọn thành công',
             'data' => [
                 'danh_mucs' => $danhMucs,
                 'sizes' => $sizes,
-                'toppings' => $toppings
+                'toppings' => $toppings,
+                'is_open' => $isOpen
             ]
         ]);
     }

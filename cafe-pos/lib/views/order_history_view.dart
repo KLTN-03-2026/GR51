@@ -111,7 +111,7 @@ class _OrderHistoryViewState extends State<OrderHistoryView> {
             
             Expanded(
               child: context.watch<OrderViewModel>().isLoading && completedOrders.isEmpty
-                ? const Center(child: CircularProgressIndicator(color: Colors.orange))
+                ? const Center(child: CircularProgressIndicator(color: const Color(0xFF6E4423)))
                 : completedOrders.isEmpty
                   ? Center(
                       child: Text(
@@ -193,7 +193,7 @@ class _OrderHistoryViewState extends State<OrderHistoryView> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                    child: Text(order.loaiDon == 'tai_ban' ? 'Bàn ${order.ban?.tenBan ?? order.maBan ?? "-"}' : 'Mang đi', style: const TextStyle(color: Colors.blue, fontSize: 13, fontWeight: FontWeight.bold)),
+                    child: Text(order.ban != null ? 'Bàn ${order.ban?.tenBan ?? order.maBan ?? "-"}' : 'Mang đi', style: const TextStyle(color: Colors.blue, fontSize: 13, fontWeight: FontWeight.bold)),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -221,10 +221,10 @@ class _OrderHistoryViewState extends State<OrderHistoryView> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.1),
+                          color: const Color(0xFF6E4423).withOpacity(0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: Text('${item.soLuong}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.orange)),
+                        child: Text('${item.soLuong}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: const Color(0xFF6E4423))),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -250,10 +250,10 @@ class _OrderHistoryViewState extends State<OrderHistoryView> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('TỔNG: ${format.format(order.tongTien)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.deepOrange)),
+                  Text('TỔNG: ${format.format(order.tongTien)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: const Color(0xFF4A2D17))),
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6E4423), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
                     child: const Text('ĐÓNG', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
                   ),
                 ],
@@ -312,7 +312,7 @@ class _OrderHistoryViewState extends State<OrderHistoryView> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  order.loaiDon == 'tai_ban' ? 'Bàn ${order.ban?.tenBan ?? order.maBan ?? "-"}' : 'Mang đi',
+                  order.ban != null ? 'Bàn ${order.ban?.tenBan ?? order.maBan ?? "-"}' : 'Mang đi',
                   style: const TextStyle(fontSize: 15, color: Colors.black87),
                 ),
               ],
@@ -334,7 +334,7 @@ class _OrderHistoryViewState extends State<OrderHistoryView> {
               style: const TextStyle(
                 fontWeight: FontWeight.w900,
                 fontSize: 16,
-                color: Colors.deepOrange,
+                color: const Color(0xFF4A2D17),
               ),
             ),
           ),

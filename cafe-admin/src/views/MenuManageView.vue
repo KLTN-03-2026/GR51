@@ -11,7 +11,7 @@
       <table class="data-table">
         <thead><tr><th>Mã</th><th>Tên danh mục</th><th>Số món</th><th>Thao tác</th></tr></thead>
         <tbody>
-          <tr v-for="dm in danhMucs" :key="dm.ma_danh_muc">
+          <tr v-for="dm in danhMucs" :key="dm.id">
             <td style="color:var(--text-primary)">{{ dm.ma_danh_muc }}</td>
             <td style="color:var(--text-primary);font-weight:500">{{ dm.ten_danh_muc }}</td>
             <td>{{ dm.mons_count || 0 }}</td>
@@ -32,7 +32,7 @@
           <input v-model="monSearch" placeholder="Tìm kiếm..." class="search-input" @input="loadMons" />
           <select v-model="monFilter" class="filter-select" @change="loadMons">
             <option value="">Tất cả danh mục</option>
-            <option v-for="dm in danhMucs" :key="dm.ma_danh_muc" :value="dm.ma_danh_muc">{{ dm.ten_danh_muc }}</option>
+            <option v-for="dm in danhMucs" :key="dm.id" :value="dm.id">{{ dm.ten_danh_muc }}</option>
           </select>
           <button class="btn btn-primary" @click="openMon()">+ Thêm</button>
         </div>
@@ -40,12 +40,12 @@
       <table class="data-table">
         <thead><tr><th>Mã</th><th>Tên món</th><th>Danh mục</th><th>Giá bán</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
         <tbody>
-          <tr v-for="m in mons" :key="m.ma_mon">
+          <tr v-for="m in mons" :key="m.id">
             <td style="color:var(--text-primary)">{{ m.ma_mon }}</td>
             <td style="color:var(--text-primary);font-weight:500">{{ m.ten_mon }}</td>
             <td>{{ m.ten_danh_muc }}</td>
             <td style="color:var(--accent)">{{ formatMoney(m.gia_ban) }}</td>
-            <td><span :class="m.trang_thai === 'dang_ban' ? 'badge badge-success' : 'badge badge-error'">{{ m.trang_thai === 'dang_ban' ? 'Đang bán' : 'Ngừng bán' }}</span></td>
+            <td><span :class="m.trang_thai === 1 ? 'badge badge-success' : 'badge badge-error'">{{ m.trang_thai === 1 ? 'Đang bán' : 'Ngừng bán' }}</span></td>
             <td class="action-cell">
               <button class="btn btn-ghost btn-sm" @click="openMon(m)">Sửa</button>
               <button class="btn btn-danger btn-sm" @click="deleteMon(m)">Xóa</button>
@@ -61,7 +61,7 @@
       <table class="data-table">
         <thead><tr><th>Mã</th><th>Tên</th><th>Giá cộng thêm</th><th>Thao tác</th></tr></thead>
         <tbody>
-          <tr v-for="kc in kichCos" :key="kc.ma_kich_co">
+          <tr v-for="kc in kichCos" :key="kc.id">
             <td style="color:var(--text-primary)">{{ kc.ma_kich_co }}</td>
             <td style="color:var(--text-primary);font-weight:500">{{ kc.ten_kich_co }}</td>
             <td style="color:var(--accent)">{{ formatMoney(kc.gia_cong_them) }}</td>
@@ -80,11 +80,11 @@
       <table class="data-table">
         <thead><tr><th>Mã</th><th>Tên</th><th>Giá</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
         <tbody>
-          <tr v-for="tp in toppings" :key="tp.ma_topping">
+          <tr v-for="tp in toppings" :key="tp.id">
             <td style="color:var(--text-primary)">{{ tp.ma_topping }}</td>
             <td style="color:var(--text-primary);font-weight:500">{{ tp.ten_topping }}</td>
             <td style="color:var(--accent)">{{ formatMoney(tp.gia_tien) }}</td>
-            <td><span :class="tp.trang_thai === 'hoat_dong' ? 'badge badge-success' : 'badge badge-error'">{{ tp.trang_thai === 'hoat_dong' ? 'Hoạt động' : 'Ngừng' }}</span></td>
+            <td><span :class="tp.trang_thai === 1 ? 'badge badge-success' : 'badge badge-error'">{{ tp.trang_thai === 1 ? 'Hoạt động' : 'Ngừng' }}</span></td>
             <td class="action-cell">
               <button class="btn btn-ghost btn-sm" @click="openTP(tp)">Sửa</button>
               <button class="btn btn-danger btn-sm" @click="deleteTP(tp)">Xóa</button>
@@ -100,22 +100,22 @@
         <h3>Công thức pha chế</h3>
         <select v-model="selectedMon" class="filter-select" @change="loadCongThuc">
           <option value="">-- Chọn món --</option>
-          <option v-for="m in mons" :key="m.ma_mon" :value="m.ma_mon">{{ m.ten_mon }}</option>
+          <option v-for="m in mons" :key="m.id" :value="m.id">{{ m.ten_mon }}</option>
         </select>
       </div>
       <div v-if="congThuc" class="card" style="margin-top:16px">
         <h4 style="margin-bottom:12px;color:var(--accent)">{{ congThuc.ten_mon }}</h4>
         <p v-if="congThuc.huong_dan" style="margin-bottom:16px;color:var(--text-secondary);white-space:pre-line">{{ congThuc.huong_dan }}</p>
         <div v-for="(nl, idx) in congThucItems" :key="idx" class="recipe-row">
-          <select v-model="nl.ma_nguyen_lieu" class="filter-select" style="flex:2">
+          <select v-model="nl.nguyen_lieu_id" class="filter-select" style="flex:2">
             <option value="">Chọn nguyên liệu</option>
-            <option v-for="n in nguyenLieus" :key="n.ma_nguyen_lieu" :value="n.ma_nguyen_lieu">{{ n.ten_nguyen_lieu }} ({{ n.don_vi_tinh }})</option>
+            <option v-for="n in nguyenLieus" :key="n.id" :value="n.id">{{ n.ten_nguyen_lieu }} ({{ n.don_vi_tinh }})</option>
           </select>
           <input v-model.number="nl.so_luong_can" type="number" step="0.01" placeholder="Số lượng" style="flex:1" />
           <button class="btn btn-danger btn-icon" @click="congThucItems.splice(idx, 1)">✕</button>
         </div>
         <div style="display:flex;gap:10px;margin-top:12px">
-          <button class="btn btn-ghost btn-sm" @click="congThucItems.push({ ma_nguyen_lieu: '', so_luong_can: 0 })">+ Thêm NL</button>
+          <button class="btn btn-ghost btn-sm" @click="congThucItems.push({ nguyen_lieu_id: '', so_luong_can: 0 })">+ Thêm NL</button>
           <button class="btn btn-primary btn-sm" @click="saveCongThuc">💾 Lưu công thức</button>
         </div>
       </div>
@@ -175,7 +175,7 @@ let modalSaveFn = null
 function formatMoney(v) { return v ? Number(v).toLocaleString('vi-VN') + 'đ' : '0đ' }
 
 async function loadDanhMucs() { try { const r = await api.getDanhMuc(); danhMucs.value = r.data.data } catch(e) { console.error(e) } }
-async function loadMons() { try { const r = await api.getMon({ search: monSearch.value, ma_danh_muc: monFilter.value }); mons.value = r.data.data } catch(e) { console.error(e) } }
+async function loadMons() { try { const r = await api.getMon({ search: monSearch.value, danh_muc_id: monFilter.value }); mons.value = r.data.data } catch(e) { console.error(e) } }
 async function loadKichCos() { try { const r = await api.getKichCo(); kichCos.value = r.data.data } catch(e) { console.error(e) } }
 async function loadToppings() { try { const r = await api.getTopping(); toppings.value = r.data.data } catch(e) { console.error(e) } }
 async function loadNguyenLieus() { try { const r = await api.getNguyenLieu(); nguyenLieus.value = r.data.data } catch(e) { console.error(e) } }
@@ -185,33 +185,33 @@ function openDM(dm) {
   modalData.value = dm ? { ma_danh_muc: dm.ma_danh_muc, ten_danh_muc: dm.ten_danh_muc } : { ma_danh_muc: '', ten_danh_muc: '' }
   modalFields.value = [{ key: 'ma_danh_muc', label: 'Mã danh mục', disabled: !!dm },{ key: 'ten_danh_muc', label: 'Tên danh mục' }]
   modalError.value = ''
-  modalSaveFn = async () => { if (dm) await api.updateDanhMuc(dm.ma_danh_muc, modalData.value); else await api.createDanhMuc(modalData.value); await loadDanhMucs(); toast.success(dm ? 'Cập nhật danh mục thành công!' : 'Thêm danh mục thành công!') }
+  modalSaveFn = async () => { if (dm) await api.updateDanhMuc(dm.id, modalData.value); else await api.createDanhMuc(modalData.value); await loadDanhMucs(); toast.success(dm ? 'Cập nhật danh mục thành công!' : 'Thêm danh mục thành công!') }
   showModal.value = true
 }
 async function deleteDM(dm) {
   const ok = await confirm(`Bạn có chắc muốn xóa danh mục "${dm.ten_danh_muc}"?`, 'Xóa danh mục')
   if (!ok) return
-  try { await api.deleteDanhMuc(dm.ma_danh_muc); toast.success('Đã xóa danh mục!'); await loadDanhMucs() } catch(e) { toast.error(e.response?.data?.message || 'Lỗi') }
+  try { await api.deleteDanhMuc(dm.id); toast.success('Đã xóa danh mục!'); await loadDanhMucs() } catch(e) { toast.error(e.response?.data?.message || 'Lỗi') }
 }
 
 function openMon(m) {
   modalTitle.value = m ? 'Sửa món ăn' : 'Thêm món ăn'
-  modalData.value = m ? { ...m } : { ma_mon: '', ma_danh_muc: '', ten_mon: '', gia_ban: 0, trang_thai: 'dang_ban', hinh_anh: '', cong_thuc: '' }
+  modalData.value = m ? { ...m } : { ma_mon: '', danh_muc_id: '', ten_mon: '', gia_ban: 0, trang_thai: 1, hinh_anh: '', cong_thuc: '' }
   modalFields.value = [
     { key: 'ma_mon', label: 'Mã món', disabled: !!m },{ key: 'ten_mon', label: 'Tên món' },
-    { key: 'ma_danh_muc', label: 'Danh mục', type: 'select', options: danhMucs.value.map(d => ({ value: d.ma_danh_muc, label: d.ten_danh_muc })) },
+    { key: 'danh_muc_id', label: 'Danh mục', type: 'select', options: danhMucs.value.map(d => ({ value: d.id, label: d.ten_danh_muc })) },
     { key: 'gia_ban', label: 'Giá bán', type: 'number' },
-    { key: 'trang_thai', label: 'Trạng thái', type: 'select', options: [{ value: 'dang_ban', label: 'Đang bán' }, { value: 'ngung_ban', label: 'Ngừng bán' }] },
+    { key: 'trang_thai', label: 'Trạng thái', type: 'select', options: [{ value: 1, label: 'Đang bán' }, { value: 0, label: 'Ngừng bán' }] },
     { key: 'hinh_anh', label: 'URL Hình ảnh' },{ key: 'cong_thuc', label: 'Hướng dẫn pha chế', type: 'textarea' },
   ]
   modalError.value = ''
-  modalSaveFn = async () => { if (m) await api.updateMon(m.ma_mon, modalData.value); else await api.createMon(modalData.value); await loadMons(); toast.success(m ? 'Cập nhật món thành công!' : 'Thêm món thành công!') }
+  modalSaveFn = async () => { if (m) await api.updateMon(m.id, modalData.value); else await api.createMon(modalData.value); await loadMons(); toast.success(m ? 'Cập nhật món thành công!' : 'Thêm món thành công!') }
   showModal.value = true
 }
 async function deleteMon(m) {
   const ok = await confirm(`Bạn có chắc muốn xóa món "${m.ten_mon}"?`, 'Xóa món')
   if (!ok) return
-  try { await api.deleteMon(m.ma_mon); toast.success('Đã xóa món!'); await loadMons() } catch(e) { toast.error(e.response?.data?.message || 'Lỗi') }
+  try { await api.deleteMon(m.id); toast.success('Đã xóa món!'); await loadMons() } catch(e) { toast.error(e.response?.data?.message || 'Lỗi') }
 }
 
 function openKC(kc) {
@@ -219,31 +219,31 @@ function openKC(kc) {
   modalData.value = kc ? { ...kc } : { ma_kich_co: '', ten_kich_co: '', gia_cong_them: 0 }
   modalFields.value = [{ key: 'ma_kich_co', label: 'Mã kích cỡ', disabled: !!kc },{ key: 'ten_kich_co', label: 'Tên' },{ key: 'gia_cong_them', label: 'Giá cộng thêm', type: 'number' }]
   modalError.value = ''
-  modalSaveFn = async () => { if (kc) await api.updateKichCo(kc.ma_kich_co, modalData.value); else await api.createKichCo(modalData.value); await loadKichCos(); toast.success(kc ? 'Cập nhật kích cỡ thành công!' : 'Thêm kích cỡ thành công!') }
+  modalSaveFn = async () => { if (kc) await api.updateKichCo(kc.id, modalData.value); else await api.createKichCo(modalData.value); await loadKichCos(); toast.success(kc ? 'Cập nhật kích cỡ thành công!' : 'Thêm kích cỡ thành công!') }
   showModal.value = true
 }
 async function deleteKC(kc) {
   const ok = await confirm(`Bạn có chắc muốn xóa kích cỡ "${kc.ten_kich_co}"?`, 'Xóa kích cỡ')
   if (!ok) return
-  try { await api.deleteKichCo(kc.ma_kich_co); toast.success('Đã xóa!'); await loadKichCos() } catch(e) { toast.error(e.response?.data?.message || 'Lỗi') }
+  try { await api.deleteKichCo(kc.id); toast.success('Đã xóa!'); await loadKichCos() } catch(e) { toast.error(e.response?.data?.message || 'Lỗi') }
 }
 
 function openTP(tp) {
   modalTitle.value = tp ? 'Sửa topping' : 'Thêm topping'
-  modalData.value = tp ? { ...tp } : { ma_topping: '', ten_topping: '', gia_tien: 0, trang_thai: 'hoat_dong', hinh_anh: '' }
+  modalData.value = tp ? { ...tp } : { ma_topping: '', ten_topping: '', gia_tien: 0, trang_thai: 1, hinh_anh: '' }
   modalFields.value = [
     { key: 'ma_topping', label: 'Mã topping', disabled: !!tp },{ key: 'ten_topping', label: 'Tên' },{ key: 'gia_tien', label: 'Giá', type: 'number' },
-    { key: 'trang_thai', label: 'Trạng thái', type: 'select', options: [{ value: 'hoat_dong', label: 'Hoạt động' }, { value: 'ngung', label: 'Ngừng' }] },
+    { key: 'trang_thai', label: 'Trạng thái', type: 'select', options: [{ value: 1, label: 'Hoạt động' }, { value: 0, label: 'Ngừng' }] },
     { key: 'hinh_anh', label: 'URL Hình ảnh' },
   ]
   modalError.value = ''
-  modalSaveFn = async () => { if (tp) await api.updateTopping(tp.ma_topping, modalData.value); else await api.createTopping(modalData.value); await loadToppings(); toast.success(tp ? 'Cập nhật topping thành công!' : 'Thêm topping thành công!') }
+  modalSaveFn = async () => { if (tp) await api.updateTopping(tp.id, modalData.value); else await api.createTopping(modalData.value); await loadToppings(); toast.success(tp ? 'Cập nhật topping thành công!' : 'Thêm topping thành công!') }
   showModal.value = true
 }
 async function deleteTP(tp) {
   const ok = await confirm(`Bạn có chắc muốn xóa topping "${tp.ten_topping}"?`, 'Xóa topping')
   if (!ok) return
-  try { await api.deleteTopping(tp.ma_topping); toast.success('Đã xóa!'); await loadToppings() } catch(e) { toast.error(e.response?.data?.message || 'Lỗi') }
+  try { await api.deleteTopping(tp.id); toast.success('Đã xóa!'); await loadToppings() } catch(e) { toast.error(e.response?.data?.message || 'Lỗi') }
 }
 
 async function loadCongThuc() {
@@ -251,12 +251,12 @@ async function loadCongThuc() {
   try {
     const r = await api.getCongThuc(selectedMon.value)
     congThuc.value = r.data.data
-    congThucItems.value = (r.data.data.nguyen_lieu || []).map(nl => ({ ma_nguyen_lieu: nl.ma_nguyen_lieu, so_luong_can: nl.so_luong_can }))
+    congThucItems.value = (r.data.data.nguyen_lieu || []).map(nl => ({ nguyen_lieu_id: nl.id, so_luong_can: nl.so_luong_can }))
   } catch(e) { toast.error('Lỗi tải công thức') }
 }
 async function saveCongThuc() {
   try {
-    await api.saveCongThuc({ ma_mon: selectedMon.value, nguyen_lieu: congThucItems.value.filter(n => n.ma_nguyen_lieu) })
+    await api.saveCongThuc({ mon_id: selectedMon.value, nguyen_lieu: congThucItems.value.filter(n => n.nguyen_lieu_id) })
     toast.success('Lưu công thức thành công!')
   } catch(e) { toast.error(e.response?.data?.message || 'Lỗi') }
 }

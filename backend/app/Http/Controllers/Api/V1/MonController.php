@@ -17,7 +17,9 @@ class MonController extends Controller
     public function getCongThuc(string $ma_mon): JsonResponse
     {
         // 1. Tìm món ăn và eager load công thức + nguyên liệu (thỏa mãn yêu cầu số 3)
-        $mon = Mon::with('congThucs.nguyenLieu')->where('ma_mon', $ma_mon)->first();
+        $mon = is_numeric($ma_mon) 
+            ? Mon::with('congThucs.nguyenLieu')->find($ma_mon)
+            : Mon::with('congThucs.nguyenLieu')->where('ma_mon', $ma_mon)->first();
 
         // Kiểm tra món ăn
         if (!$mon) {

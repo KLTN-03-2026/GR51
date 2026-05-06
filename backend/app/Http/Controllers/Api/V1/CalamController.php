@@ -18,11 +18,12 @@ class CaLamController extends Controller
             'tien_mat_dau_ca' => 'required|numeric|min:0'
         ]);
 
-        $maNhanSu = $request->user()->ma_nhan_su;
+        $nhanSuId = $request->user()->id;
+        $maNhanSu = $request->user()->ma_nhan_su; // Dùng để tạo mã ca làm cho đẹp
 
         // Kiểm tra xem nhân viên này có ca nào đang mở không (chống mở 2 ca cùng lúc)
-        $caLamHienTai = CaLam::where('ma_nhan_su', $maNhanSu)
-            ->where('trang_thai', 'dang_lam')
+        $caLamHienTai = CaLam::where('nhan_su_id', $nhanSuId)
+            ->where('trang_thai', 1)
             ->first();
 
         if ($caLamHienTai) {
@@ -37,14 +38,14 @@ class CaLamController extends Controller
 
         $caLamMoi = CaLam::create([
             'ma_ca_lam' => $maCaLam,
-            'ma_nhan_su' => $maNhanSu,
+            'nhan_su_id' => $nhanSuId,
             'thoi_gian_bat_dau' => Carbon::now(),
             'thoi_gian_ket_thuc' => null,
             'tien_mat_dau_ca' => $request->input('tien_mat_dau_ca'),
-            'tien_mat_he_thong' => $request->input('tien_mat_dau_ca'), // Lúc mới mở ca, tiền hệ thống = tiền đầu ca
+            'tien_mat_he_thong' => $request->input('tien_mat_dau_ca'), 
             'tong_doanh_thu' => 0,
             'tien_mat_thuc_te' => 0,
-            'trang_thai' => 'dang_lam'
+            'trang_thai' => 1 // 1: Đang làm
         ]);
 
         return response()->json([
@@ -57,11 +58,11 @@ class CaLamController extends Controller
     // 1. API Lấy thông tin ca làm hiện tại và thống kê doanh thu
     public function getCurrentShift(Request $request)
     {
-        $maNhanSu = $request->user()->ma_nhan_su;
+        $nhanSuId = $request->user()->id;
 
         // Tìm ca làm đang mở của nhân viên này
-        $caLam = CaLam::where('ma_nhan_su', $maNhanSu)
-            ->where('trang_thai', 'dang_lam')
+        $caLam = CaLam::where('nhan_su_id', $nhanSuId)
+            ->where('trang_thai', 1)
             ->first();
 
         if (!$caLam) {
@@ -72,29 +73,32 @@ class CaLamController extends Controller
             ], 404);
         }
 
-        // Kéo tất cả đơn hàng đã Hoàn Thành của nhân viên này trong khoảng thời gian ca làm
-        $donHangs = DonHang::where('ma_nhan_su', $maNhanSu)
-            ->where('trang_thai_don', 'hoan_thanh')
-            ->where('created_at', '>=', $caLam->thoi_gian_bat_dau)
+        // Kéo tất cả đơn hàng đã thanh toán trong ca
+        $startTime = Carbon::parse($caLam->thoi_gian_bat_dau);
+        
+        $donHangs = DonHang::where(function($q) use ($nhanSuId) {
+                $q->where('nhan_su_id', $nhanSuId)
+                  ->orWhereNull('nhan_su_id');
+            })
+            ->where('trang_thai_thanh_toan', 1) 
+            ->where('created_at', '>=', $startTime)
             ->get();
 
-        // Đếm đơn đang xử lý (pha chế, chờ xử lý)
-        $donDangXuLy = DonHang::where('ma_nhan_su', $maNhanSu)
-            ->whereIn('trang_thai_don', ['dang_pha', 'cho_xu_ly'])
-            ->where('created_at', '>=', $caLam->thoi_gian_bat_dau)
+        // Đếm đơn đang xử lý (1: Đang pha, 0: Chờ xử lý)
+        $donDangXuLy = DonHang::where('nhan_su_id', $nhanSuId)
+            ->whereIn('trang_thai_don', [0, 1])
+            ->where('created_at', '>=', $startTime)
             ->count();
 
-        // Tính toán các con số để đẩy lên UI
         $tongSoDon = $donHangs->count();
         $tongDoanhThu = $donHangs->sum('tong_tien');
         $tienMat = $donHangs->where('phuong_thuc_thanh_toan', 'tien_mat')->sum('tong_tien');
         $chuyenKhoan = $donHangs->where('phuong_thuc_thanh_toan', 'chuyen_khoan')->sum('tong_tien');
         $trungBinhDon = $tongSoDon > 0 ? $tongDoanhThu / $tongSoDon : 0;
-        $nhanVien = \App\Models\NhanSu::where('ma_nhan_su', $maNhanSu)->first();
-        $hoTen = $nhanVien ? $nhanVien->ho_ten : 'Nhân viên ẩn danh';
-        $vaiTro = $nhanVien ? $nhanVien->vai_tro : 'nhan_vien';
+        
+        $hoTen = $request->user()->ho_ten;
+        $vaiTro = $request->user()->vai_tro;
 
-        // Tiền mặt hệ thống = tiền đầu ca + tiền bán được bằng tiền mặt
         $tienMatHeThong = (float)$caLam->tien_mat_dau_ca + (float)$tienMat;
 
         return response()->json([
@@ -128,13 +132,13 @@ class CaLamController extends Controller
             'ghi_chu' => 'nullable|string|max:500',
         ]);
 
-        $maNhanSu = $request->user()->ma_nhan_su;
+        $nhanSuId = $request->user()->id;
 
         try {
             DB::beginTransaction();
 
-            $caLam = CaLam::where('ma_nhan_su', $maNhanSu)
-                ->where('trang_thai', 'dang_lam')
+            $caLam = CaLam::where('nhan_su_id', $nhanSuId)
+                ->where('trang_thai', 1)
                 ->first();
 
             if (!$caLam) {
@@ -145,9 +149,9 @@ class CaLamController extends Controller
                 ], 404);
             }
 
-            // Kiểm tra đơn đang xử lý
-            $donDangXuLy = DonHang::where('ma_nhan_su', $maNhanSu)
-                ->whereIn('trang_thai_don', ['dang_pha', 'cho_xu_ly'])
+            // Kiểm tra đơn đang xử lý (0, 1)
+            $donDangXuLy = DonHang::where('nhan_su_id', $nhanSuId)
+                ->whereIn('trang_thai_don', [0, 1])
                 ->where('created_at', '>=', $caLam->thoi_gian_bat_dau)
                 ->count();
 
@@ -160,29 +164,31 @@ class CaLamController extends Controller
                 ], 400);
             }
 
-            // Tính toán lại tiền hệ thống trước khi chốt
-            $tienMatBanDuoc = DonHang::where('ma_nhan_su', $maNhanSu)
-                ->where('trang_thai_don', 'hoan_thanh')
+            $startTime = Carbon::parse($caLam->thoi_gian_bat_dau);
+
+            $queryShiftOrders = DonHang::where(function($q) use ($nhanSuId) {
+                    $q->where('nhan_su_id', $nhanSuId)
+                      ->orWhereNull('nhan_su_id');
+                })
+                ->where('trang_thai_thanh_toan', 1)
+                ->where('created_at', '>=', $startTime);
+
+            $tienMatBanDuoc = (clone $queryShiftOrders)
                 ->where('phuong_thuc_thanh_toan', 'tien_mat')
-                ->where('created_at', '>=', $caLam->thoi_gian_bat_dau)
                 ->sum('tong_tien');
 
-            $tongDoanhThu = DonHang::where('ma_nhan_su', $maNhanSu)
-                ->where('trang_thai_don', 'hoan_thanh')
-                ->where('created_at', '>=', $caLam->thoi_gian_bat_dau)
-                ->sum('tong_tien');
+            $tongDoanhThu = (clone $queryShiftOrders)->sum('tong_tien');
 
             $tienMatHeThong = $tienMatBanDuoc + $caLam->tien_mat_dau_ca;
             $tienMatThucTe = $request->input('tien_mat_thuc_te', 0);
             $chenhLech = $tienMatThucTe - $tienMatHeThong;
 
-            // Cập nhật chốt sổ ca làm
             $caLam->thoi_gian_ket_thuc = Carbon::now();
             $caLam->tien_mat_he_thong = $tienMatHeThong;
             $caLam->tien_mat_thuc_te = $tienMatThucTe;
             $caLam->tong_doanh_thu = $tongDoanhThu;
             $caLam->ghi_chu = $request->input('ghi_chu');
-            $caLam->trang_thai = 'da_ket_thuc';
+            $caLam->trang_thai = 0; // 0: Đã kết thúc
             $caLam->save();
 
             DB::commit();

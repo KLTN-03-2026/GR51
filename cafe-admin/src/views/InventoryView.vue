@@ -18,7 +18,7 @@
       <table class="data-table">
         <thead><tr><th>Mã</th><th>Tên</th><th>Tồn kho</th><th>Đơn vị</th><th>Mức cảnh báo</th><th>Tình trạng</th><th>Thao tác</th></tr></thead>
         <tbody>
-          <tr v-for="nl in items" :key="nl.ma_nguyen_lieu">
+          <tr v-for="nl in items" :key="nl.id">
             <td style="color:var(--text-primary)">{{ nl.ma_nguyen_lieu }}</td>
             <td style="color:var(--text-primary);font-weight:500">{{ nl.ten_nguyen_lieu }}</td>
             <td :style="{ color: nl.tinh_trang_kho === 'het_hang' ? 'var(--error)' : nl.tinh_trang_kho === 'sap_het' ? 'var(--warning)' : 'var(--success)', fontWeight: 600 }">{{ nl.ton_kho }}</td>
@@ -67,7 +67,7 @@
             <div class="form-group"><label>Đơn vị tính</label><input v-model="form.don_vi_tinh" /></div>
             <div class="form-group"><label>Tồn kho ban đầu</label><input v-model.number="form.ton_kho" type="number" :disabled="editing" /></div>
             <div class="form-group"><label>Mức cảnh báo</label><input v-model.number="form.muc_canh_bao" type="number" /></div>
-            <div class="form-group"><label>Trạng thái</label><select v-model="form.trang_thai"><option value="hoat_dong">Hoạt động</option><option value="ngung">Ngừng</option></select></div>
+            <div class="form-group"><label>Trạng thái</label><select v-model="form.trang_thai"><option :value="1">Hoạt động</option><option :value="0">Ngừng</option></select></div>
           </div>
         </div>
         <div v-if="formErr" class="error-msg">{{ formErr }}</div>
@@ -107,12 +107,12 @@ async function loadHistory() { try { const r = await api.getLichSuKho({ loai_gia
 
 function openForm(nl) {
   editing.value = !!nl; formErr.value = ''
-  form.value = nl ? { ...nl } : { ma_nguyen_lieu: '', ten_nguyen_lieu: '', don_vi_tinh: '', ton_kho: 0, muc_canh_bao: 0, trang_thai: 'hoat_dong' }
+  form.value = nl ? { ...nl } : { ma_nguyen_lieu: '', ten_nguyen_lieu: '', don_vi_tinh: '', ton_kho: 0, muc_canh_bao: 0, trang_thai: 1 }
   showModal.value = true
 }
 async function save() {
   try {
-    if (editing.value) await api.updateNguyenLieu(form.value.ma_nguyen_lieu, form.value)
+    if (editing.value) await api.updateNguyenLieu(form.value.id, form.value)
     else await api.createNguyenLieu(form.value)
     showModal.value = false; toast.success(editing.value ? 'Cập nhật thành công!' : 'Thêm thành công!'); await load()
   } catch(e) { formErr.value = e.response?.data?.message || 'Lỗi' }
@@ -120,13 +120,13 @@ async function save() {
 async function del(nl) {
   const ok = await confirm(`Bạn có chắc muốn xóa "${nl.ten_nguyen_lieu}"?`, 'Xóa nguyên liệu')
   if (!ok) return
-  try { await api.deleteNguyenLieu(nl.ma_nguyen_lieu); toast.success('Đã xóa!'); await load() } catch(e) { toast.error(e.response?.data?.message || 'Lỗi') }
+  try { await api.deleteNguyenLieu(nl.id); toast.success('Đã xóa!'); await load() } catch(e) { toast.error(e.response?.data?.message || 'Lỗi') }
 }
 function openNhapKho(nl) { nhapKhoItem.value = nl; nhapSoLuong.value = 0; showNhapKho.value = true }
 async function nhapKho() {
   if (nhapSoLuong.value <= 0) { toast.warning('Số lượng phải lớn hơn 0'); return }
   try {
-    await api.nhapKho(nhapKhoItem.value.ma_nguyen_lieu, { so_luong: nhapSoLuong.value })
+    await api.nhapKho(nhapKhoItem.value.id, { so_luong: nhapSoLuong.value })
     showNhapKho.value = false; toast.success('Nhập kho thành công!'); await load()
   } catch(e) { toast.error(e.response?.data?.message || 'Lỗi') }
 }

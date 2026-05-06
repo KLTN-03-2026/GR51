@@ -54,9 +54,9 @@ class _OrderListViewState extends State<OrderListView> with SingleTickerProvider
         elevation: 0,
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Colors.orange,
+          labelColor: const Color(0xFF6E4423),
           unselectedLabelColor: Colors.grey,
-          indicatorColor: Colors.orange,
+          indicatorColor: const Color(0xFF6E4423),
           indicatorWeight: 3,
           labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
           tabs: [
@@ -66,7 +66,7 @@ class _OrderListViewState extends State<OrderListView> with SingleTickerProvider
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.orange),
+            icon: const Icon(Icons.refresh, color: const Color(0xFF6E4423)),
             onPressed: () => context.read<OrderViewModel>().loadOrders(),
           ),
           const SizedBox(width: 8),
@@ -78,7 +78,7 @@ class _OrderListViewState extends State<OrderListView> with SingleTickerProvider
 
   Widget _buildBody(OrderViewModel viewModel, List<DonHang> dangPha, List<DonHang> choThanhToan) {
     if (viewModel.isLoading && viewModel.orders.isEmpty) {
-      return const Center(child: CircularProgressIndicator(color: Colors.orange));
+      return const Center(child: CircularProgressIndicator(color: const Color(0xFF6E4423)));
     }
 
     if (viewModel.errorMessage != null && viewModel.orders.isEmpty) {
@@ -143,7 +143,7 @@ class SmartOrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
-    final bool isPaid = order.trangThaiThanhToan == 'da_thanh_toan' || order.trangThaiThanhToan == 'đã_thanh_toan';
+    final bool isPaid = order.trangThaiThanhToan == 1;
 
     return Container(
       decoration: BoxDecoration(
@@ -187,10 +187,10 @@ class SmartOrderCard extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.1),
+                            color: const Color(0xFF6E4423).withOpacity(0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: Text('${item.soLuong}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.orange)),
+                          child: Text('${item.soLuong}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: const Color(0xFF6E4423))),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -203,13 +203,13 @@ class SmartOrderCard extends StatelessWidget {
                                   Expanded(
                                     child: Text(item.mon?.tenMon ?? 'Món xoá/Ẩn', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87)),
                                   ),
-                                  if (isTab1 && item.maMon.isNotEmpty)
+                                  if (isTab1 && item.monId > 0)
                                     InkWell(
-                                      onTap: () => _showRecipeDialog(context, item.maMon, item.mon?.tenMon ?? 'Công thức'),
+                                      onTap: () => _showRecipeDialog(context, item.monId, item.mon?.tenMon ?? 'Công thức'),
                                       borderRadius: BorderRadius.circular(4),
                                       child: const Padding(
                                         padding: EdgeInsets.symmetric(horizontal: 4.0),
-                                        child: Icon(Icons.menu_book, color: Colors.orange, size: 20),
+                                        child: Icon(Icons.menu_book, color: const Color(0xFF6E4423), size: 20),
                                       ),
                                     ),
                                 ],
@@ -271,11 +271,11 @@ class SmartOrderCard extends StatelessWidget {
     );
   }
 
-  void _showRecipeDialog(BuildContext context, String maMon, String tenMon) {
+  void _showRecipeDialog(BuildContext context, int monId, String tenMon) {
     showDialog(
       context: context,
       builder: (ctx) {
-        return _RecipeDialog(maMon: maMon, tenMon: tenMon);
+        return _RecipeDialog(monId: monId, tenMon: tenMon);
       },
     );
   }
@@ -359,7 +359,7 @@ class SmartOrderCard extends StatelessWidget {
             const Text('TỔNG TIỀN:', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
             Text(
               format.format(order.tongTien),
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.orange),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: const Color(0xFF6E4423)),
             ),
           ],
         ),
@@ -368,10 +368,9 @@ class SmartOrderCard extends StatelessWidget {
           width: double.infinity,
           child: ElevatedButton(
             onPressed: () async {
-              // Capture payment status before optimistic update
-              final isPaid = order.trangThaiThanhToan == 'da_thanh_toan' || order.trangThaiThanhToan == 'đã_thanh_toan';
+              final isPaid = order.trangThaiThanhToan == 1;
               
-              final success = await viewModel.completePreparation(order.maDonHang);
+              final success = await viewModel.completePreparation(order.id);
               
               if (success && context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -380,14 +379,14 @@ class SmartOrderCard extends StatelessWidget {
                       isPaid ? 'Đơn hàng đã hoàn tất và được lưu vào Lịch sử' : 'Đã pha xong. Đơn chờ thu tiền tại mục Chờ thanh toán',
                       style: const TextStyle(fontWeight: FontWeight.bold)
                     ),
-                    backgroundColor: isPaid ? Colors.green : Colors.orange,
+                    backgroundColor: isPaid ? Colors.green : const Color(0xFF6E4423),
                     duration: const Duration(seconds: 2),
                   ),
                 );
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
+              backgroundColor: const Color(0xFF6E4423),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -396,37 +395,171 @@ class SmartOrderCard extends StatelessWidget {
             child: const Text('HOÀN THÀNH PHA CHẾ', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
           ),
         ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: () => _showCancelDialog(context),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.red,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              side: const BorderSide(color: Colors.red, width: 1.5),
+            ),
+            child: const Text('HUỶ ĐƠN HÀNG', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1, fontSize: 13)),
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildTab2Footer(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: () async {
-          final success = await viewModel.confirmPayment(order.maDonHang);
-          if (success && context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Thanh toán thành công! Đơn hàng đã được chuyển vào Lịch sử.',
-                  style: TextStyle(fontWeight: FontWeight.bold)
-                ),
-                backgroundColor: Colors.green,
-                duration: Duration(seconds: 2),
-              ),
-            );
-          }
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.green,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          elevation: 0,
+    return Column(
+      children: [
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () async {
+              final success = await viewModel.confirmPayment(order.id);
+              if (success && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Thanh toán thành công! Đơn hàng đã được chuyển vào Lịch sử.',
+                      style: TextStyle(fontWeight: FontWeight.bold)
+                    ),
+                    backgroundColor: Colors.green,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              elevation: 0,
+            ),
+            child: const Text('XÁC NHẬN THU TIỀN', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+          ),
         ),
-        child: const Text('XÁC NHẬN THU TIỀN', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: () => _showCancelDialog(context),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.red,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              side: const BorderSide(color: Colors.red, width: 1.5),
+            ),
+            child: const Text('HUỶ ĐƠN HÀNG', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1, fontSize: 13)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showCancelDialog(BuildContext context) {
+    final reasonController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: Colors.red[50], borderRadius: BorderRadius.circular(10)),
+            child: Icon(Icons.cancel_outlined, color: Colors.red[600], size: 24),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(child: Text('Xác nhận huỷ đơn', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18))),
+        ]),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: Colors.amber[50], borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.amber[300]!)),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Icon(Icons.warning_amber_rounded, color: const Color(0xFF6E4423), size: 20),
+                const SizedBox(width: 8),
+                Expanded(child: Text(
+                  order.trangThaiDon == 2
+                    ? 'Đơn này đã pha chế xong. Nguyên liệu sẽ được hoàn trả về kho.'
+                    : 'Đơn này đang pha chế. Huỷ sẽ không ảnh hưởng tồn kho.',
+                  style: const TextStyle(fontSize: 13, color: Colors.black87),
+                )),
+              ]),
+            ),
+            const SizedBox(height: 16),
+            const Text('Lý do huỷ *', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: reasonController,
+              maxLines: 2,
+              decoration: InputDecoration(
+                hintText: 'VD: Khách đổi ý, hết nguyên liệu...',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                filled: true,
+                fillColor: Colors.grey[50],
+              ),
+            ),
+          ],
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+        actions: [
+          Row(children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: const Text('Quay lại', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.cancel, color: Colors.white, size: 18),
+                label: const Text('Xác nhận huỷ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () async {
+                  if (reasonController.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Vui lòng nhập lý do huỷ đơn!'), backgroundColor: const Color(0xFF6E4423)),
+                    );
+                    return;
+                  }
+                  Navigator.pop(ctx);
+                  final result = await viewModel.cancelOrder(order.id, reasonController.text.trim());
+                  if (context.mounted) {
+                    final success = result['success'] == true;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          success ? (result['message'] ?? 'Huỷ đơn thành công') : (result['message'] ?? 'Lỗi huỷ đơn'),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        backgroundColor: success ? Colors.green : Colors.red,
+                        duration: const Duration(seconds: 3),
+                      ),
+                    );
+                  }
+                },
+              ),
+            ),
+          ]),
+        ],
       ),
     );
   }
@@ -486,19 +619,19 @@ class _OrderTimerState extends State<OrderTimer> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: isLate ? Colors.red.withOpacity(0.15) : Colors.orange.withOpacity(0.15),
+        color: isLate ? Colors.red.withOpacity(0.15) : const Color(0xFF6E4423).withOpacity(0.15),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: isLate ? Colors.red.withOpacity(0.3) : Colors.orange.withOpacity(0.3)),
+        border: Border.all(color: isLate ? Colors.red.withOpacity(0.3) : const Color(0xFF6E4423).withOpacity(0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.timer_outlined, size: 14, color: isLate ? Colors.red[700] : Colors.orange[800]),
+          Icon(Icons.timer_outlined, size: 14, color: isLate ? Colors.red[700] : const Color(0xFF6E4423)),
           const SizedBox(width: 4),
           Text(
             '$minStr:$secStr',
             style: TextStyle(
-              color: isLate ? Colors.red[800] : Colors.orange[900],
+              color: isLate ? Colors.red[800] : const Color(0xFF6E4423),
               fontWeight: FontWeight.bold,
               fontSize: 13,
             ),
@@ -510,10 +643,10 @@ class _OrderTimerState extends State<OrderTimer> {
 }
 
 class _RecipeDialog extends StatelessWidget {
-  final String maMon;
+  final int monId;
   final String tenMon;
 
-  const _RecipeDialog({required this.maMon, required this.tenMon});
+  const _RecipeDialog({required this.monId, required this.tenMon});
 
   @override
   Widget build(BuildContext context) {
@@ -523,12 +656,12 @@ class _RecipeDialog extends StatelessWidget {
       content: SizedBox(
         width: 500, // Make it reasonably wide
         child: FutureBuilder<Map<String, dynamic>>(
-          future: ApiService().fetchRecipe(maMon),
+          future: ApiService().fetchRecipe(monId),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const SizedBox(
                 height: 150,
-                child: Center(child: CircularProgressIndicator(color: Colors.orange)),
+                child: Center(child: CircularProgressIndicator(color: const Color(0xFF6E4423))),
               );
             }
             if (snapshot.hasError) {

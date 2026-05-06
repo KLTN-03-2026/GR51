@@ -3,43 +3,24 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use App\Models\NhanSu;
 use Illuminate\Support\Facades\Hash;
-use Carbon\Carbon;
 
 class NhanSuSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        $now = Carbon::now();
-        DB::table('nhan_sus')->insert([
+        NhanSu::updateOrCreate(
+            ['ten_dang_nhap' => 'admin'], // Điều kiện tìm kiếm
             [
-                'ma_nhan_su' => 'NV01',
-                'ten_dang_nhap' => 'admin',
-                'mat_khau' => Hash::make('123456'),
-                'ma_pin' => Hash::make('1111'),
-                'ho_ten' => 'Quản Lý',
-                'so_dien_thoai' => '0901234567',
-                'vai_tro' => 'quan_ly',
-                'trang_thai' => 'hoat_dong',
-                'created_at' => $now,
-                'updated_at' => $now,
-            ],
-            [
-                'ma_nhan_su' => 'NV02',
-                'ten_dang_nhap' => 'nhanvien',
-                'mat_khau' => null,
-                'ma_pin' => Hash::make('1234'),
-                'ho_ten' => 'Nhân Viên Thu Ngân',
-                'so_dien_thoai' => '0901234568',
-                'vai_tro' => 'nhan_vien',
-                'trang_thai' => 'hoat_dong',
-                'created_at' => $now,
-                'updated_at' => $now,
+                'ma_nhan_su' => 'ADMIN01',
+                'mat_khau' => Hash::make('admin123'),
+                'ma_pin' => '123456',
+                'ho_ten' => 'Hệ thống Quản trị',
+                'so_dien_thoai' => '0900000000',
+                'vai_tro' => 'admin',
+                'trang_thai' => 1,
             ]
-        ]);
+        );
     }
 }

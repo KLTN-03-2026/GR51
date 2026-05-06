@@ -9,99 +9,43 @@ use Illuminate\Http\Request;
 
 class ToppingController extends Controller
 {
-    /**
-     * Danh sách topping
-     */
     public function index(): JsonResponse
     {
-        $toppings = Topping::orderBy('ten_topping')->get()->map(function ($tp) {
-            return [
-                'ma_topping' => $tp->ma_topping,
-                'ten_topping' => $tp->ten_topping,
-                'hinh_anh' => $tp->hinh_anh,
-                'gia_tien' => (float) $tp->gia_tien,
-                'trang_thai' => $tp->trang_thai,
-            ];
-        });
-
         return response()->json([
             'success' => true,
-            'data' => $toppings
+            'data' => Topping::orderBy('ten_topping')->get()
         ]);
     }
 
-    /**
-     * Thêm topping
-     */
     public function store(Request $request): JsonResponse
     {
         $request->validate([
             'ma_topping' => 'required|string|unique:toppings,ma_topping',
             'ten_topping' => 'required|string|max:255',
             'gia_tien' => 'required|numeric|min:0',
-            'trang_thai' => 'required|string',
-            'hinh_anh' => 'nullable|string',
+            'trang_thai' => 'required|integer',
         ]);
 
-        $topping = Topping::create($request->only([
-            'ma_topping', 'ten_topping', 'hinh_anh', 'gia_tien', 'trang_thai'
-        ]));
+        $topping = Topping::create($request->all());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Thêm topping thành công',
-            'data' => $topping
-        ], 201);
+        return response()->json(['success' => true, 'data' => $topping], 201);
     }
 
-    /**
-     * Cập nhật topping
-     */
-    public function update(Request $request, $maTopping): JsonResponse
+    public function update(Request $request, $id): JsonResponse
     {
-        $topping = Topping::find($maTopping);
-        if (!$topping) {
-            return response()->json(['success' => false, 'message' => 'Không tìm thấy topping'], 404);
-        }
+        $topping = Topping::find($id);
+        if (!$topping) return response()->json(['success' => false, 'message' => 'Không tìm thấy'], 404);
 
-        $request->validate([
-            'ten_topping' => 'sometimes|required|string|max:255',
-            'gia_tien' => 'sometimes|required|numeric|min:0',
-            'trang_thai' => 'sometimes|required|string',
-            'hinh_anh' => 'nullable|string',
-        ]);
-
-        $topping->update($request->only(['ten_topping', 'hinh_anh', 'gia_tien', 'trang_thai']));
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Cập nhật topping thành công',
-            'data' => $topping
-        ]);
+        $topping->update($request->all());
+        return response()->json(['success' => true, 'data' => $topping]);
     }
 
-    /**
-     * Xóa topping
-     */
-    public function destroy($maTopping): JsonResponse
+    public function destroy($id): JsonResponse
     {
-        $topping = Topping::find($maTopping);
-        if (!$topping) {
-            return response()->json(['success' => false, 'message' => 'Không tìm thấy topping'], 404);
-        }
-
-        if ($topping->chiTietToppings()->count() > 0) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Không thể xóa topping đang được sử dụng trong đơn hàng.'
-            ], 400);
-        }
+        $topping = Topping::find($id);
+        if (!$topping) return response()->json(['success' => false, 'message' => 'Không tìm thấy'], 404);
 
         $topping->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Xóa topping thành công'
-        ]);
+        return response()->json(['success' => true, 'message' => 'Xóa thành công']);
     }
 }

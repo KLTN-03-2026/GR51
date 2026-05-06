@@ -6,9 +6,9 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void {
         Schema::create('ca_lams', function (Blueprint $table) {
-
-            $table->string('ma_ca_lam')->primary();
-            $table->string('ma_nhan_su');
+            $table->id();
+            $table->string('ma_ca_lam')->unique();
+            $table->foreignId('nhan_su_id')->constrained('nhan_sus')->onDelete('cascade');
             $table->dateTime('thoi_gian_bat_dau');
             $table->dateTime('thoi_gian_ket_thuc')->nullable();
             $table->decimal('tien_mat_dau_ca', 15, 2);
@@ -16,9 +16,8 @@ return new class extends Migration {
             $table->decimal('tien_mat_thuc_te', 15, 2)->nullable();
             $table->decimal('tong_doanh_thu', 15, 2)->default(0);
             $table->text('ghi_chu')->nullable();
-            $table->string('trang_thai');
-            $table->foreign('ma_nhan_su')->references('ma_nhan_su')->on('nhan_sus');
-                    $table->timestamps();
+            $table->tinyInteger('trang_thai')->default(1)->comment('1: Đang làm, 0: Đã kết thúc');
+            $table->timestamps();
         });
     }
 

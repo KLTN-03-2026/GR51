@@ -42,7 +42,7 @@ class _AccountViewState extends State<AccountView> {
       backgroundColor: const Color(0xFFFDFBF7),
       body: SafeArea(
         child: viewModel.isLoading
-            ? const Center(child: CircularProgressIndicator(color: Colors.blue))
+            ? const Center(child: CircularProgressIndicator(color: const Color(0xFF6E4423)))
             : Padding(
                 padding: const EdgeInsets.all(24.0),
                 child: Column(
@@ -104,7 +104,7 @@ class _AccountViewState extends State<AccountView> {
                               const Text('Tổng quan ca làm', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
                               const SizedBox(height: 16),
                               Row(children: [
-                                Expanded(child: _buildSummaryBox('Tổng doanh thu', _formatCurrency(viewModel.shiftData!['thong_ke']['tong_doanh_thu']), Colors.orange, Icons.attach_money)),
+                                Expanded(child: _buildSummaryBox('Tổng doanh thu', _formatCurrency(viewModel.shiftData!['thong_ke']['tong_doanh_thu']), const Color(0xFF6E4423), Icons.attach_money)),
                                 const SizedBox(width: 16),
                                 Expanded(child: _buildSummaryBox('Tổng số đơn', '${viewModel.shiftData!['thong_ke']['tong_so_don']}', Colors.blue, Icons.shopping_bag_outlined)),
                                 const SizedBox(width: 16),
@@ -122,7 +122,7 @@ class _AccountViewState extends State<AccountView> {
                                   _buildPaymentRow('Chuyển khoản / Thẻ', _formatCurrency(viewModel.shiftData!['thong_ke']['chuyen_khoan']), Colors.blue),
                                   if (viewModel.shiftData!['tien_mat_dau_ca'] != null) ...[
                                     const Divider(height: 32),
-                                    _buildPaymentRow('Tiền mặt đầu ca', _formatCurrency(viewModel.shiftData!['tien_mat_dau_ca']), Colors.orange),
+                                    _buildPaymentRow('Tiền mặt đầu ca', _formatCurrency(viewModel.shiftData!['tien_mat_dau_ca']), const Color(0xFF6E4423)),
                                   ],
                                   if (viewModel.shiftData!['tien_mat_he_thong'] != null) ...[
                                     const Divider(height: 32),
@@ -143,7 +143,7 @@ class _AccountViewState extends State<AccountView> {
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(color: Colors.amber[50], borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.amber[300]!)),
                           child: Row(children: [
-                            const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                            const Icon(Icons.warning_amber_rounded, color: const Color(0xFF6E4423)),
                             const SizedBox(width: 12),
                             Expanded(child: Text('Còn ${viewModel.shiftData!['thong_ke']['don_dang_xu_ly']} đơn đang xử lý. Hoàn thành trước khi kết ca.', style: const TextStyle(color: Colors.black87, fontSize: 13))),
                           ]),
@@ -181,7 +181,7 @@ class _AccountViewState extends State<AccountView> {
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
       child: Column(children: [
         Row(children: [
-          CircleAvatar(radius: 24, backgroundColor: Colors.orange[100], child: Text(chuCaiDau, style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 20))),
+          CircleAvatar(radius: 24, backgroundColor: const Color(0xFFEFE6DD), child: Text(chuCaiDau, style: const TextStyle(color: const Color(0xFF6E4423), fontWeight: FontWeight.bold, fontSize: 20))),
           const SizedBox(width: 16),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(hoTen, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
@@ -208,16 +208,24 @@ class _AccountViewState extends State<AccountView> {
     ]);
   }
 
-  Widget _buildSummaryBox(String title, String value, MaterialColor color, IconData icon) {
+  Widget _buildSummaryBox(String title, String value, Color color, IconData icon) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: color[50], borderRadius: BorderRadius.circular(12), border: Border.all(color: color[100]!)),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1), 
+        borderRadius: BorderRadius.circular(12), 
+        border: Border.all(color: color.withOpacity(0.2))
+      ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: Colors.white, size: 20)),
+        Container(
+          padding: const EdgeInsets.all(6), 
+          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)), 
+          child: Icon(icon, color: Colors.white, size: 20)
+        ),
         const SizedBox(height: 12),
-        Text(title, style: TextStyle(color: color[700], fontSize: 11)),
+        Text(title, style: TextStyle(color: color, fontSize: 11)),
         const SizedBox(height: 4),
-        Text(value, style: TextStyle(color: color[900], fontSize: 15, fontWeight: FontWeight.bold)),
+        Text(value, style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.bold)),
       ]),
     );
   }
@@ -477,7 +485,7 @@ class _AccountViewState extends State<AccountView> {
                     style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF03E3E), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
                     onPressed: () async {
                       if (cashController.text.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng nhập tiền mặt thực tế!'), backgroundColor: Colors.orange));
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng nhập tiền mặt thực tế!'), backgroundColor: const Color(0xFF6E4423)));
                         return;
                       }
                       Navigator.pop(ctx);

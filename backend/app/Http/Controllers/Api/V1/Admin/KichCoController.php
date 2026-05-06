@@ -9,28 +9,14 @@ use Illuminate\Http\Request;
 
 class KichCoController extends Controller
 {
-    /**
-     * Danh sách kích cỡ
-     */
     public function index(): JsonResponse
     {
-        $kichCos = KichCo::orderBy('ten_kich_co')->get()->map(function ($kc) {
-            return [
-                'ma_kich_co' => $kc->ma_kich_co,
-                'ten_kich_co' => $kc->ten_kich_co,
-                'gia_cong_them' => (float) $kc->gia_cong_them,
-            ];
-        });
-
         return response()->json([
             'success' => true,
-            'data' => $kichCos
+            'data' => KichCo::orderBy('ten_kich_co')->get()
         ]);
     }
 
-    /**
-     * Thêm kích cỡ
-     */
     public function store(Request $request): JsonResponse
     {
         $request->validate([
@@ -39,61 +25,26 @@ class KichCoController extends Controller
             'gia_cong_them' => 'required|numeric|min:0',
         ]);
 
-        $kichCo = KichCo::create($request->only(['ma_kich_co', 'ten_kich_co', 'gia_cong_them']));
+        $kichCo = KichCo::create($request->all());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Thêm kích cỡ thành công',
-            'data' => $kichCo
-        ], 201);
+        return response()->json(['success' => true, 'data' => $kichCo], 201);
     }
 
-    /**
-     * Cập nhật kích cỡ
-     */
-    public function update(Request $request, $maKichCo): JsonResponse
+    public function update(Request $request, $id): JsonResponse
     {
-        $kichCo = KichCo::find($maKichCo);
-        if (!$kichCo) {
-            return response()->json(['success' => false, 'message' => 'Không tìm thấy kích cỡ'], 404);
-        }
+        $kichCo = KichCo::find($id);
+        if (!$kichCo) return response()->json(['success' => false, 'message' => 'Không tìm thấy'], 404);
 
-        $request->validate([
-            'ten_kich_co' => 'sometimes|required|string|max:255',
-            'gia_cong_them' => 'sometimes|required|numeric|min:0',
-        ]);
-
-        $kichCo->update($request->only(['ten_kich_co', 'gia_cong_them']));
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Cập nhật kích cỡ thành công',
-            'data' => $kichCo
-        ]);
+        $kichCo->update($request->all());
+        return response()->json(['success' => true, 'data' => $kichCo]);
     }
 
-    /**
-     * Xóa kích cỡ
-     */
-    public function destroy($maKichCo): JsonResponse
+    public function destroy($id): JsonResponse
     {
-        $kichCo = KichCo::find($maKichCo);
-        if (!$kichCo) {
-            return response()->json(['success' => false, 'message' => 'Không tìm thấy kích cỡ'], 404);
-        }
-
-        if ($kichCo->chiTietDonHangs()->count() > 0) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Không thể xóa kích cỡ đang được sử dụng trong đơn hàng.'
-            ], 400);
-        }
+        $kichCo = KichCo::find($id);
+        if (!$kichCo) return response()->json(['success' => false, 'message' => 'Không tìm thấy'], 404);
 
         $kichCo->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Xóa kích cỡ thành công'
-        ]);
+        return response()->json(['success' => true, 'message' => 'Xóa thành công']);
     }
 }

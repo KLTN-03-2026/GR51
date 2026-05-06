@@ -2,13 +2,15 @@ import 'menu_model.dart';
 import 'ban_model.dart';
 
 class DonHang {
+  final int id;
   final String maDonHang;
   final String? maBan;
+  final int? banId;
   final String loaiDon;
   final double tongTien;
   final String phuongThucThanhToan;
-  final String trangThaiThanhToan;
-  final String trangThaiDon;
+  final int trangThaiThanhToan;
+  final int trangThaiDon;
   final String? createdAt;
   final String? updatedAt;
   final int? minutesWaiting;
@@ -17,8 +19,10 @@ class DonHang {
   final Ban? ban;
 
   DonHang({
+    required this.id,
     required this.maDonHang,
     this.maBan,
+    this.banId,
     required this.loaiDon,
     required this.tongTien,
     required this.phuongThucThanhToan,
@@ -37,13 +41,15 @@ class DonHang {
     List<ChiTietDonHang> chiTiets = chiTietList.map((i) => ChiTietDonHang.fromJson(i)).toList();
 
     return DonHang(
+      id: json['id'] ?? 0,
       maDonHang: json['ma_don_hang'] ?? '',
-      maBan: json['ma_ban']?.toString(), // có thể rỗng đối với mang đi
+      maBan: json['ma_ban']?.toString(),
+      banId: json['ban_id'] != null ? int.tryParse(json['ban_id'].toString()) : null,
       loaiDon: json['loai_don'] ?? 'tai_ban',
       tongTien: double.tryParse(json['tong_tien']?.toString() ?? '0') ?? 0.0,
       phuongThucThanhToan: json['phuong_thuc_thanh_toan'] ?? '',
-      trangThaiThanhToan: json['trang_thai_thanh_toan'] ?? '',
-      trangThaiDon: json['trang_thai_don'] ?? '',
+      trangThaiThanhToan: int.tryParse(json['trang_thai_thanh_toan'].toString()) ?? 0,
+      trangThaiDon: int.tryParse(json['trang_thai_don'].toString()) ?? 0,
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],
       minutesWaiting: (json['minutes_waiting'] as num?)?.toInt(),
@@ -55,8 +61,10 @@ class DonHang {
 }
 
 class ChiTietDonHang {
+  final int id;
   final String maChiTiet;
-  final String maDonHang;
+  final int donHangId;
+  final int monId;
   final String maMon;
   final int soLuong;
   final double donGia;
@@ -64,8 +72,10 @@ class ChiTietDonHang {
   final Mon? mon;
 
   ChiTietDonHang({
+    required this.id,
     required this.maChiTiet,
-    required this.maDonHang,
+    required this.donHangId,
+    required this.monId,
     required this.maMon,
     required this.soLuong,
     required this.donGia,
@@ -75,8 +85,10 @@ class ChiTietDonHang {
 
   factory ChiTietDonHang.fromJson(Map<String, dynamic> json) {
     return ChiTietDonHang(
+      id: json['id'] ?? 0,
       maChiTiet: json['ma_chi_tiet'] ?? '',
-      maDonHang: json['ma_don_hang'] ?? '',
+      donHangId: json['don_hang_id'] ?? 0,
+      monId: json['mon_id'] ?? 0,
       maMon: json['ma_mon'] ?? '',
       soLuong: json['so_luong'] ?? 1,
       donGia: double.tryParse(json['don_gia']?.toString() ?? '0') ?? 0.0,

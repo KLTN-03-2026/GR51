@@ -6,8 +6,8 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void {
         Schema::create('khu_vucs', function (Blueprint $table) {
-
-            $table->string('ma_khu_vuc')->primary();
+            $table->id();
+            $table->string('ma_khu_vuc')->unique();
             $table->string('ten_khu_vuc');
                     $table->timestamps();
         });

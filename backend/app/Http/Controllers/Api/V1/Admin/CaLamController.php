@@ -16,33 +16,22 @@ class CaLamController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $query = CaLam::with('nhanSu:ma_nhan_su,ho_ten,vai_tro');
+            $query = CaLam::with('nhanSu');
 
-            // Filter theo nhân viên
-            if ($request->has('ma_nhan_su') && $request->ma_nhan_su) {
-                $query->where('ma_nhan_su', $request->ma_nhan_su);
+            if ($request->has('nhan_su_id') && $request->nhan_su_id) {
+                $query->where('nhan_su_id', $request->nhan_su_id);
             }
 
-            // Filter theo trạng thái
-            if ($request->has('trang_thai') && $request->trang_thai) {
+            if ($request->has('trang_thai') && $request->trang_thai !== null) {
                 $query->where('trang_thai', $request->trang_thai);
-            }
-
-            // Filter theo ngày
-            if ($request->has('tu_ngay') && $request->tu_ngay) {
-                $query->whereDate('thoi_gian_bat_dau', '>=', $request->tu_ngay);
-            }
-            if ($request->has('den_ngay') && $request->den_ngay) {
-                $query->whereDate('thoi_gian_bat_dau', '<=', $request->den_ngay);
             }
 
             $caLams = $query->orderByDesc('thoi_gian_bat_dau')
                 ->limit(100)
                 ->get()
                 ->map(function ($cl) {
-                    // Tính thống kê đơn hàng trong ca
-                    $donHangs = DonHang::where('ma_nhan_su', $cl->ma_nhan_su)
-                        ->where('trang_thai_don', 'hoan_thanh')
+                    $donHangs = DonHang::where('nhan_su_id', $cl->nhan_su_id)
+                        ->where('trang_thai_thanh_toan', 1) // 1: Đã thanh toán
                         ->where('created_at', '>=', $cl->thoi_gian_bat_dau);
                     
                     if ($cl->thoi_gian_ket_thuc) {
@@ -53,35 +42,46 @@ class CaLamController extends Controller
                     $tienMat = (clone $donHangs)->where('phuong_thuc_thanh_toan', 'tien_mat')->sum('tong_tien');
                     $chuyenKhoan = (clone $donHangs)->where('phuong_thuc_thanh_toan', 'chuyen_khoan')->sum('tong_tien');
 
+                    $tongDoanhThu = (float)($tienMat + $chuyenKhoan);
+                    $trungBinh = $tongDon > 0 ? round($tongDoanhThu / $tongDon, 0) : 0;
+
+                    // Đếm đơn đang xử lý (0: Chờ, 1: Đang pha)
+                    $donDangXuLy = DonHang::where('nhan_su_id', $cl->nhan_su_id)
+                        ->whereIn('trang_thai_don', [0, 1])
+                        ->where('created_at', '>=', $cl->thoi_gian_bat_dau);
+                    if ($cl->thoi_gian_ket_thuc) {
+                        $donDangXuLy->where('created_at', '<=', $cl->thoi_gian_ket_thuc);
+                    }
+                    $countDangXuLy = $donDangXuLy->count();
+
                     return [
+                        'id' => $cl->id,
                         'ma_ca_lam' => $cl->ma_ca_lam,
-                        'nhan_vien' => $cl->nhanSu ? $cl->nhanSu->ho_ten : 'N/A',
-                        'ma_nhan_su' => $cl->ma_nhan_su,
+                        'nhan_vien' => $cl->nhanSu ? [
+                            'id' => $cl->nhanSu->id,
+                            'ho_ten' => $cl->nhanSu->ho_ten,
+                            'vai_tro' => $cl->nhanSu->vai_tro
+                        ] : null,
                         'thoi_gian_bat_dau' => $cl->thoi_gian_bat_dau,
                         'thoi_gian_ket_thuc' => $cl->thoi_gian_ket_thuc,
-                        'tien_mat_dau_ca' => (float) $cl->tien_mat_dau_ca,
-                        'tien_mat_he_thong' => (float) $cl->tien_mat_he_thong,
-                        'tien_mat_thuc_te' => $cl->tien_mat_thuc_te ? (float) $cl->tien_mat_thuc_te : null,
-                        'tong_doanh_thu' => (float) $cl->tong_doanh_thu,
-                        'ghi_chu' => $cl->ghi_chu,
-                        'trang_thai' => $cl->trang_thai,
+                        'tong_doanh_thu' => $cl->trang_thai == 0 ? (float)$cl->tong_doanh_thu : $tongDoanhThu,
+                        'tien_mat_dau_ca' => (float)$cl->tien_mat_dau_ca,
+                        'tien_mat_he_thong' => (float)$cl->tien_mat_he_thong,
+                        'trang_thai' => (int)$cl->trang_thai,
                         'thong_ke' => [
-                            'tong_don' => $tongDon,
+                            'tong_so_don' => $tongDon,
                             'tien_mat' => (float) $tienMat,
                             'chuyen_khoan' => (float) $chuyenKhoan,
+                            'tong_doanh_thu' => $tongDoanhThu,
+                            'trung_binh_don' => (float) $trungBinh,
+                            'don_dang_xu_ly' => $countDangXuLy
                         ]
                     ];
                 });
 
-            return response()->json([
-                'success' => true,
-                'data' => $caLams
-            ]);
+            return response()->json(['success' => true, 'data' => $caLams]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Lỗi khi lấy lịch sử ca làm: ' . $e->getMessage()
-            ], 500);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 }

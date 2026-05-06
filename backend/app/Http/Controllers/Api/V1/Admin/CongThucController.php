@@ -14,20 +14,20 @@ class CongThucController extends Controller
     /**
      * Lấy công thức của một món ăn
      */
-    public function show($maMon): JsonResponse
+    public function show($id): JsonResponse
     {
-        $mon = Mon::find($maMon);
+        $mon = Mon::find($id);
         if (!$mon) {
             return response()->json(['success' => false, 'message' => 'Không tìm thấy món ăn'], 404);
         }
 
-        $congThucs = CongThuc::where('ma_mon', $maMon)
-            ->with('nguyenLieu:ma_nguyen_lieu,ten_nguyen_lieu,don_vi_tinh')
+        $congThucs = CongThuc::where('mon_id', $id)
+            ->with('nguyenLieu')
             ->get()
             ->map(function ($ct) {
                 return [
-                    'ma_mon' => $ct->ma_mon,
-                    'ma_nguyen_lieu' => $ct->ma_nguyen_lieu,
+                    'mon_id' => $ct->mon_id,
+                    'nguyen_lieu_id' => $ct->nguyen_lieu_id,
                     'ten_nguyen_lieu' => $ct->nguyenLieu ? $ct->nguyenLieu->ten_nguyen_lieu : null,
                     'don_vi_tinh' => $ct->nguyenLieu ? $ct->nguyenLieu->don_vi_tinh : null,
                     'so_luong_can' => (float) $ct->so_luong_can,
@@ -37,6 +37,7 @@ class CongThucController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
+                'id' => $mon->id,
                 'ma_mon' => $mon->ma_mon,
                 'ten_mon' => $mon->ten_mon,
                 'huong_dan' => $mon->cong_thuc,
@@ -47,46 +48,37 @@ class CongThucController extends Controller
 
     /**
      * Lưu/cập nhật toàn bộ công thức cho một món
-     * Body: { ma_mon: "...", nguyen_lieu: [{ ma_nguyen_lieu: "...", so_luong_can: ... }, ...] }
      */
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'ma_mon' => 'required|string|exists:mons,ma_mon',
+            'mon_id' => 'required|integer|exists:mons,id',
             'nguyen_lieu' => 'required|array',
-            'nguyen_lieu.*.ma_nguyen_lieu' => 'required|string|exists:nguyen_lieus,ma_nguyen_lieu',
+            'nguyen_lieu.*.nguyen_lieu_id' => 'required|integer|exists:nguyen_lieus,id',
             'nguyen_lieu.*.so_luong_can' => 'required|numeric|min:0.01',
         ]);
 
         try {
             DB::beginTransaction();
-
-            $maMon = $request->input('ma_mon');
+            $monId = $request->input('mon_id');
 
             // Xóa tất cả công thức cũ của món
-            CongThuc::where('ma_mon', $maMon)->delete();
+            CongThuc::where('mon_id', $monId)->delete();
 
             // Thêm công thức mới
             foreach ($request->input('nguyen_lieu') as $nl) {
                 CongThuc::create([
-                    'ma_mon' => $maMon,
-                    'ma_nguyen_lieu' => $nl['ma_nguyen_lieu'],
+                    'mon_id' => $monId,
+                    'nguyen_lieu_id' => $nl['nguyen_lieu_id'],
                     'so_luong_can' => $nl['so_luong_can'],
                 ]);
             }
 
             DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Cập nhật công thức thành công',
-            ]);
+            return response()->json(['success' => true, 'message' => 'Cập nhật công thức thành công']);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Lỗi khi cập nhật công thức: ' . $e->getMessage()
-            ], 500);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 }

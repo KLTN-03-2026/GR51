@@ -33,10 +33,13 @@ class AuthController extends Controller
         }
 
         // Kiểm tra trạng thái nếu bị khóa
-        if ($nhanSu->trang_thai !== 'active' && $nhanSu->trang_thai !== 'hoat_dong' && $nhanSu->trang_thai !== 1) {
-            // Giả định trạng thái hợp lệ, có thể cần chỉnh lại theo model thực tế.
-            // Bỏ qua check trạng thái nếu không rõ ràng, hoặc bật nó nếu có rule.
+        if ($nhanSu->trang_thai != 1) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tài khoản đã bị khóa hoặc ngưng hoạt động.'
+            ], 403);
         }
+
 
         // Tạo token
         $token = $nhanSu->createToken('auth_token')->plainTextToken;

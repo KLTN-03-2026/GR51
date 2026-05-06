@@ -6,18 +6,15 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void {
         Schema::create('chi_tiet_don_hangs', function (Blueprint $table) {
-
-            $table->string('ma_chi_tiet')->primary();
-            $table->string('ma_don_hang');
-            $table->string('ma_mon');
-            $table->string('ma_kich_co')->nullable();
+            $table->id();
+            $table->string('ma_chi_tiet')->unique();
+            $table->foreignId('don_hang_id')->constrained('don_hangs')->onDelete('cascade');
+            $table->foreignId('mon_id')->constrained('mons')->onDelete('cascade');
+            $table->foreignId('kich_co_id')->nullable()->constrained('kich_cos')->onDelete('set null');
             $table->integer('so_luong');
             $table->string('ghi_chu')->nullable();
             $table->decimal('don_gia', 15, 2);
-            $table->foreign('ma_don_hang')->references('ma_don_hang')->on('don_hangs');
-            $table->foreign('ma_mon')->references('ma_mon')->on('mons');
-            $table->foreign('ma_kich_co')->references('ma_kich_co')->on('kich_cos');
-                    $table->timestamps();
+            $table->timestamps();
         });
     }
 

@@ -84,7 +84,7 @@ class _TableSelectionModalState extends State<TableSelectionModal> {
                       if (viewModel.isLoading && viewModel.khuVucs.isEmpty) {
                         return const Padding(
                           padding: EdgeInsets.all(40.0),
-                          child: Center(child: CircularProgressIndicator(color: Colors.orange)),
+                          child: Center(child: CircularProgressIndicator(color: const Color(0xFF6E4423))),
                         );
                       }
                       
@@ -100,7 +100,7 @@ class _TableSelectionModalState extends State<TableSelectionModal> {
                                 const SizedBox(height: 16),
                                 ElevatedButton(
                                   onPressed: () => viewModel.loadData(),
-                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6E4423)),
                                   child: const Text('Thử lại', style: TextStyle(color: Colors.white)),
                                 )
                               ],
@@ -125,11 +125,11 @@ class _TableSelectionModalState extends State<TableSelectionModal> {
                                 DropdownButton<KhuVuc>(
                                   value: viewModel.selectedKhuVuc,
                                   underline: const SizedBox(),
-                                  icon: const Icon(Icons.arrow_drop_down, color: Colors.orange),
+                                  icon: const Icon(Icons.arrow_drop_down, color: const Color(0xFF6E4423)),
                                   items: viewModel.khuVucs.map((kv) {
                                     return DropdownMenuItem(
                                       value: kv,
-                                      child: Text(kv.tenKhuVuc, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
+                                      child: Text(kv.tenKhuVuc, style: const TextStyle(fontWeight: FontWeight.bold, color: const Color(0xFF6E4423))),
                                     );
                                   }).toList(),
                                   onChanged: (KhuVuc? newValue) {
@@ -208,7 +208,7 @@ class _TableSelectionModalState extends State<TableSelectionModal> {
   }
 
   Widget _buildTableCard(Ban ban) {
-    final isOccupied = ban.trangThai == 'dang_phuc_vu';
+    final isOccupied = ban.trangThai == 1;
     
     return GestureDetector(
       onTap: () {
@@ -217,8 +217,8 @@ class _TableSelectionModalState extends State<TableSelectionModal> {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: isOccupied ? Colors.orange[50] : Colors.white,
-          border: Border.all(color: isOccupied ? Colors.orange[300]! : Colors.grey[300]!),
+          color: isOccupied ? const Color(0xFFFDFBF7) : Colors.white,
+          border: Border.all(color: isOccupied ? const Color(0xFF6E4423)! : Colors.grey[300]!),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Stack(
@@ -229,7 +229,7 @@ class _TableSelectionModalState extends State<TableSelectionModal> {
                 children: [
                   Icon(
                     Icons.table_bar,    
-                    color: isOccupied ? Colors.orange : Colors.grey[400],
+                    color: isOccupied ? const Color(0xFF6E4423) : Colors.grey[400],
                     size: 32,
                   ),
                   const SizedBox(height: 8),
@@ -238,7 +238,7 @@ class _TableSelectionModalState extends State<TableSelectionModal> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
-                      color: isOccupied ? Colors.orange[800] : Colors.black87,
+                      color: isOccupied ? const Color(0xFF4A2D17) : Colors.black87,
                     ),
                   ),
                 ],
@@ -252,7 +252,7 @@ class _TableSelectionModalState extends State<TableSelectionModal> {
                   width: 12,
                   height: 12,
                   decoration: const BoxDecoration(
-                    color: Colors.orange,
+                    color: const Color(0xFF6E4423),
                     shape: BoxShape.circle,
                   ),
                 ),

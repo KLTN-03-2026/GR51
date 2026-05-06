@@ -16,7 +16,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     if (data.success) {
       // Kiểm tra vai trò quản lý
-      if (data.data.user.vai_tro !== 'quan_ly') {
+      if (!['admin', 'quan_ly'].includes(data.data.user.vai_tro)) {
         throw new Error('Tài khoản không có quyền truy cập Admin.')
       }
 

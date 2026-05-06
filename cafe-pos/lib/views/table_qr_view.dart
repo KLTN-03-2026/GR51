@@ -65,7 +65,7 @@ class _TableQrViewState extends State<TableQrView> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Gunpla Coffe', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.orange)),
+                const Text('Gunpla Coffe', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: const Color(0xFF6E4423))),
                 const SizedBox(height: 8),
                 Text('$tableName ($khuVucName)', style: const TextStyle(fontSize: 18, color: Colors.black87)),
                 const SizedBox(height: 24),
@@ -95,7 +95,7 @@ class _TableQrViewState extends State<TableQrView> {
                     ElevatedButton.icon(
                       icon: const Icon(Icons.print),
                       label: const Text('In (Bấm Ctrl + P)'),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white),
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6E4423), foregroundColor: Colors.white),
                       onPressed: () {
                         // Hint user to press Ctrl+P
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -123,7 +123,7 @@ class _TableQrViewState extends State<TableQrView> {
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.orange),
+            icon: const Icon(Icons.refresh, color: const Color(0xFF6E4423)),
             onPressed: _loadTables,
             tooltip: 'Làm mới',
           ),
@@ -173,7 +173,7 @@ class _TableQrViewState extends State<TableQrView> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Colors.orange));
+      return const Center(child: CircularProgressIndicator(color: const Color(0xFF6E4423)));
     }
     
     if (_error != null) {
@@ -218,7 +218,7 @@ class _TableQrViewState extends State<TableQrView> {
           padding: const EdgeInsets.only(bottom: 16.0, top: 8.0),
           child: Row(
             children: [
-              const Icon(Icons.other_houses, color: Colors.orange),
+              const Icon(Icons.other_houses, color: const Color(0xFF6E4423)),
               const SizedBox(width: 8),
               Text(
                 kv.tenKhuVuc,
@@ -276,8 +276,8 @@ class _TableQrViewState extends State<TableQrView> {
                         icon: const Icon(Icons.print, size: 18),
                         label: const Text('In QR'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.orange,
-                          side: const BorderSide(color: Colors.orange),
+                          foregroundColor: const Color(0xFF6E4423),
+                          side: const BorderSide(color: const Color(0xFF6E4423)),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))
                         ),
                         onPressed: () => _printQr(ban.maBan, ban.tenBan, kv.tenKhuVuc),

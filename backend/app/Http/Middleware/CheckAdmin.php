@@ -14,10 +14,10 @@ class CheckAdmin
     {
         $user = $request->user();
 
-        if (!$user || $user->vai_tro !== 'quan_ly') {
+        if (!$user || !in_array($user->vai_tro, ['admin', 'quan_ly'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Bạn không có quyền truy cập chức năng này. Yêu cầu vai trò Quản lý.'
+                'message' => 'Bạn không có quyền truy cập chức năng này.'
             ], 403);
         }
 

@@ -8,7 +8,7 @@
       <div class="toolbar"><h3>Khu vực ({{ khuVucs.length }})</h3><button class="btn btn-primary" @click="openKV()">+ Thêm</button></div>
       <table class="data-table">
         <thead><tr><th>Mã</th><th>Tên khu vực</th><th>Số bàn</th><th>Thao tác</th></tr></thead>
-        <tbody><tr v-for="k in khuVucs" :key="k.ma_khu_vuc">
+        <tbody><tr v-for="k in khuVucs" :key="k.id">
           <td style="color:var(--text-primary)">{{ k.ma_khu_vuc }}</td>
           <td style="color:var(--text-primary);font-weight:500">{{ k.ten_khu_vuc }}</td>
           <td>{{ k.bans_count || 0 }}</td>
@@ -18,17 +18,17 @@
     </div>
     <div v-if="tab==='ban'">
       <div class="toolbar">
-        <div class="toolbar-actions"><select v-model="banFilter" class="filter-select" @change="loadBans"><option value="">Tất cả khu vực</option><option v-for="k in khuVucs" :key="k.ma_khu_vuc" :value="k.ma_khu_vuc">{{ k.ten_khu_vuc }}</option></select></div>
+        <div class="toolbar-actions"><select v-model="banFilter" class="filter-select" @change="loadBans"><option value="">Tất cả khu vực</option><option v-for="k in khuVucs" :key="k.id" :value="k.id">{{ k.ten_khu_vuc }}</option></select></div>
         <button class="btn btn-primary" @click="openBan()">+ Thêm</button>
       </div>
       <table class="data-table">
         <thead><tr><th>Mã</th><th>Tên bàn</th><th>Khu vực</th><th>Mã QR</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
-        <tbody><tr v-for="b in bans" :key="b.ma_ban">
+        <tbody><tr v-for="b in bans" :key="b.id">
           <td style="color:var(--text-primary)">{{ b.ma_ban }}</td>
           <td style="color:var(--text-primary);font-weight:500">{{ b.ten_ban }}</td>
           <td>{{ b.ten_khu_vuc }}</td>
           <td style="font-size:0.8rem;color:var(--text-muted)">{{ b.ma_qr }}</td>
-          <td><span :class="b.trang_thai==='trong'?'badge badge-success':'badge badge-warning'">{{ b.trang_thai==='trong'?'Trống':'Đang dùng' }}</span></td>
+          <td><span :class="b.trang_thai === 0 ? 'badge badge-success' : 'badge badge-warning'">{{ b.trang_thai === 0 ? 'Trống' : 'Đang dùng' }}</span></td>
           <td class="action-cell"><button class="btn btn-ghost btn-sm" @click="openBan(b)">Sửa</button><button class="btn btn-danger btn-sm" @click="delBan(b)">Xóa</button></td>
         </tr></tbody>
       </table>
@@ -64,34 +64,34 @@ const tab = ref('kv'), khuVucs = ref([]), bans = ref([]), banFilter = ref('')
 const showModal = ref(false), modalTitle = ref(''), fields = ref([]), form = ref({}), err = ref('')
 let saveFn = null
 async function loadKV() { try { const r = await api.getKhuVuc(); khuVucs.value = r.data.data } catch(e){} }
-async function loadBans() { try { const r = await api.getBan({ ma_khu_vuc: banFilter.value }); bans.value = r.data.data } catch(e){} }
+async function loadBans() { try { const r = await api.getBan({ khu_vuc_id: banFilter.value }); bans.value = r.data.data } catch(e){} }
 function openKV(k) {
   modalTitle.value = k ? 'Sửa khu vực' : 'Thêm khu vực'
   form.value = k ? { ma_khu_vuc: k.ma_khu_vuc, ten_khu_vuc: k.ten_khu_vuc } : { ma_khu_vuc: '', ten_khu_vuc: '' }
   fields.value = [{ key:'ma_khu_vuc', label:'Mã', disabled:!!k },{ key:'ten_khu_vuc', label:'Tên khu vực' }]
-  err.value = ''; saveFn = async () => { if(k) await api.updateKhuVuc(k.ma_khu_vuc, form.value); else await api.createKhuVuc(form.value); await loadKV(); toast.success(k ? 'Cập nhật thành công!' : 'Thêm khu vực thành công!') }
+  err.value = ''; saveFn = async () => { if(k) await api.updateKhuVuc(k.id, form.value); else await api.createKhuVuc(form.value); await loadKV(); toast.success(k ? 'Cập nhật thành công!' : 'Thêm khu vực thành công!') }
   showModal.value = true
 }
 async function delKV(k) {
   const ok = await confirm(`Xóa khu vực "${k.ten_khu_vuc}"?`, 'Xóa khu vực')
   if (!ok) return
-  try { await api.deleteKhuVuc(k.ma_khu_vuc); toast.success('Đã xóa!'); await loadKV() } catch(e) { toast.error(e.response?.data?.message||'Lỗi') }
+  try { await api.deleteKhuVuc(k.id); toast.success('Đã xóa!'); await loadKV() } catch(e) { toast.error(e.response?.data?.message||'Lỗi') }
 }
 function openBan(b) {
   modalTitle.value = b ? 'Sửa bàn' : 'Thêm bàn'
-  form.value = b ? { ...b } : { ma_ban:'', ten_ban:'', ma_khu_vuc:'', ma_qr:'', trang_thai:'trong' }
+  form.value = b ? { ...b } : { ma_ban:'', ten_ban:'', khu_vuc_id:'', ma_qr:'', trang_thai: 0 }
   fields.value = [
     { key:'ma_ban', label:'Mã bàn', disabled:!!b },{ key:'ten_ban', label:'Tên bàn' },
-    { key:'ma_khu_vuc', label:'Khu vực', type:'select', options: khuVucs.value.map(k=>({value:k.ma_khu_vuc,label:k.ten_khu_vuc})) },
-    { key:'ma_qr', label:'Mã QR' },{ key:'trang_thai', label:'Trạng thái', type:'select', options:[{value:'trong',label:'Trống'},{value:'dang_su_dung',label:'Đang dùng'}] },
+    { key:'khu_vuc_id', label:'Khu vực', type:'select', options: khuVucs.value.map(k=>({value:k.id,label:k.ten_khu_vuc})) },
+    { key:'ma_qr', label:'Mã QR' },{ key:'trang_thai', label:'Trạng thái', type:'select', options:[{value: 0,label:'Trống'},{value: 1,label:'Đang dùng'}] },
   ]
-  err.value = ''; saveFn = async () => { if(b) await api.updateBan(b.ma_ban, form.value); else await api.createBan(form.value); await loadBans(); toast.success(b ? 'Cập nhật thành công!' : 'Thêm bàn thành công!') }
+  err.value = ''; saveFn = async () => { if(b) await api.updateBan(b.id, form.value); else await api.createBan(form.value); await loadBans(); toast.success(b ? 'Cập nhật thành công!' : 'Thêm bàn thành công!') }
   showModal.value = true
 }
 async function delBan(b) {
   const ok = await confirm(`Xóa bàn "${b.ten_ban}"?`, 'Xóa bàn')
   if (!ok) return
-  try { await api.deleteBan(b.ma_ban); toast.success('Đã xóa!'); await loadBans() } catch(e) { toast.error(e.response?.data?.message||'Lỗi') }
+  try { await api.deleteBan(b.id); toast.success('Đã xóa!'); await loadBans() } catch(e) { toast.error(e.response?.data?.message||'Lỗi') }
 }
 async function saveModal() { err.value=''; try { await saveFn(); showModal.value=false } catch(e){ err.value = e.response?.data?.message||'Lỗi' } }
 onMounted(() => { loadKV(); loadBans() })

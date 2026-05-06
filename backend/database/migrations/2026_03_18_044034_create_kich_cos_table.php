@@ -6,11 +6,11 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void {
         Schema::create('kich_cos', function (Blueprint $table) {
-
-            $table->string('ma_kich_co')->primary();
+            $table->id();
+            $table->string('ma_kich_co')->unique();
             $table->string('ten_kich_co');
             $table->decimal('gia_cong_them', 15, 2);
-                    $table->timestamps();
+            $table->timestamps();
         });
     }
 

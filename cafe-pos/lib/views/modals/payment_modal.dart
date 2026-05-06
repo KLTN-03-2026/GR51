@@ -6,13 +6,13 @@ import '../../models/cart_item_model.dart';
 
 class PaymentModal extends StatefulWidget {
   final String loaiDon;
-  final String? maBan;
+  final int? banId;
   final double totalPrice;
 
   const PaymentModal({
     Key? key,
     required this.loaiDon,
-    this.maBan,
+    this.banId,
     required this.totalPrice,
   }) : super(key: key);
 
@@ -82,10 +82,10 @@ class _PaymentModalState extends State<PaymentModal> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.orange[100],
+                          color: const Color(0xFFEFE6DD),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Text(widget.loaiDon == 'mang_di' ? 'Mang đi' : 'Tại bàn', style: TextStyle(color: Colors.orange[800], fontWeight: FontWeight.bold)),
+                        child: Text(widget.loaiDon == 'mang_di' ? 'Mang đi' : 'Tại bàn', style: TextStyle(color: const Color(0xFF4A2D17), fontWeight: FontWeight.bold)),
                       )
                     ],
                   ),
@@ -175,10 +175,10 @@ class _PaymentModalState extends State<PaymentModal> {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text('Khách cần trả', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.orange)),
+                                    const Text('Khách cần trả', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: const Color(0xFF6E4423))),
                                     Text(
                                       _currencyFormat.format(widget.totalPrice),
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.orange),
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: const Color(0xFF6E4423)),
                                     ),
                                   ],
                                 ),
@@ -322,13 +322,13 @@ class _PaymentModalState extends State<PaymentModal> {
                                   onPressed: cart.isSubmitting 
                                     ? null 
                                     : () async {
-                                        final success = await cart.submitOrder(
-                                          loaiDon: widget.loaiDon,
-                                          phuongThucThanhToan: _phuongThuc == 'Tiền mặt' ? 'tien_mat' : 'chuyen_khoan',
-                                          maBan: widget.maBan,
-                                          trangThaiThanhToan: 'da_thanh_toan',
-                                          trangThaiDon: 'dang_pha',
-                                        );
+                                          final success = await cart.submitOrder(
+                                            loaiDon: widget.loaiDon,
+                                            phuongThucThanhToan: _phuongThuc == 'Tiền mặt' ? 'tien_mat' : 'chuyen_khoan',
+                                            banId: widget.banId,
+                                            trangThaiThanhToan: 1, // Đã thanh toán
+                                            trangThaiDon: 1, // Đang pha
+                                          );
                                         if (context.mounted) {
                                           Navigator.pop(context, success);
                                         }
@@ -395,18 +395,18 @@ class _PaymentModalState extends State<PaymentModal> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.orange[50] : Colors.white,
-            border: Border.all(color: isSelected ? Colors.orange : Colors.grey[300]!, width: isSelected ? 2 : 1),
+            color: isSelected ? const Color(0xFFFDFBF7) : Colors.white,
+            border: Border.all(color: isSelected ? const Color(0xFF6E4423) : Colors.grey[300]!, width: isSelected ? 2 : 1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
             children: [
-              Icon(icon, color: isSelected ? Colors.orange : Colors.grey[600], size: 32),
+              Icon(icon, color: isSelected ? const Color(0xFF6E4423) : Colors.grey[600], size: 32),
               const SizedBox(height: 8),
               Text(
                 title,
                 style: TextStyle(
-                  color: isSelected ? Colors.orange[800] : Colors.grey[800],
+                  color: isSelected ? const Color(0xFF4A2D17) : Colors.grey[800],
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                 ),
               ),

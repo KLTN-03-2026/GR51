@@ -116,9 +116,9 @@ class _MenuViewState extends State<MenuView> {
               ),
               const SizedBox(width: 12),
               CircleAvatar(
-                backgroundColor: Colors.orange[100],
+                backgroundColor: const Color(0xFFEFE6DD),
                 // HIỂN THỊ CHỮ CÁI ĐẦU TIÊN CỦA TÊN THẬT
-                child: Text(chuCaiDau, style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                child: Text(chuCaiDau, style: const TextStyle(color: const Color(0xFF6E4423), fontWeight: FontWeight.bold)),
               )
             ],
           )
@@ -169,7 +169,7 @@ class _MenuViewState extends State<MenuView> {
         margin: const EdgeInsets.only(right: 12),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.orange : Colors.white,
+          color: isSelected ? const Color(0xFF6E4423) : Colors.white,
           borderRadius: BorderRadius.circular(24),
           border: isSelected ? null : Border.all(color: Colors.grey[300]!),
         ),
@@ -211,7 +211,7 @@ class _MenuViewState extends State<MenuView> {
     return Consumer<MenuViewModel>(
       builder: (context, viewModel, child) {
         if (viewModel.isLoading) {
-          return const Center(child: CircularProgressIndicator(color: Colors.orange));
+          return const Center(child: CircularProgressIndicator(color: const Color(0xFF6E4423)));
         }
 
         if (viewModel.errorMessage != null) {
@@ -225,7 +225,7 @@ class _MenuViewState extends State<MenuView> {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () => viewModel.fetchMenuData(),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6E4423)),
                   child: const Text('Thử lại', style: TextStyle(color: Colors.white)),
                 ),
               ],
@@ -339,7 +339,7 @@ class _MenuViewState extends State<MenuView> {
                             color: Colors.white.withOpacity(0.9),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.add, color: Colors.orange, size: 20),
+                          child: const Icon(Icons.add, color: const Color(0xFF6E4423), size: 20),
                         ),
                       ),
                     ),
@@ -383,7 +383,7 @@ class _MenuViewState extends State<MenuView> {
                   const SizedBox(height: 4),
                   Text(
                     currencyFormat.format(mon.gia),
-                    style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 16),
+                    style: const TextStyle(color: const Color(0xFF6E4423), fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ],
               ),
@@ -425,7 +425,7 @@ class _MenuViewState extends State<MenuView> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.orange[50],
+                  color: const Color(0xFFFDFBF7),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -433,10 +433,10 @@ class _MenuViewState extends State<MenuView> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.orange[100], 
+                        color: const Color(0xFFEFE6DD), 
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.location_on, color: Colors.orange, size: 20),
+                      child: const Icon(Icons.location_on, color: const Color(0xFF6E4423), size: 20),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -491,7 +491,7 @@ class _MenuViewState extends State<MenuView> {
                   const Text('Tổng cộng', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                   Text(
                     currencyFormat.format(cart.totalPrice), 
-                    style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 24),
+                    style: const TextStyle(color: const Color(0xFF6E4423), fontWeight: FontWeight.bold, fontSize: 24),
                   ),
                 ],
               ),
@@ -517,9 +517,9 @@ class _MenuViewState extends State<MenuView> {
                         bool success = await cart.submitOrder(
                           loaiDon: loaiDon,
                           phuongThucThanhToan: 'tien_mat',
-                          maBan: maBanString,
-                          trangThaiThanhToan: 'chua_thanh_toan',
-                          trangThaiDon: 'dang_pha',
+                          banId: selectedBan?.id,
+                          trangThaiThanhToan: 0, // Chua thanh toan
+                          trangThaiDon: 1, // Dang pha
                         );
 
                         if (context.mounted) {
@@ -556,7 +556,7 @@ class _MenuViewState extends State<MenuView> {
                             context: context,
                             builder: (context) => PaymentModal(
                               loaiDon: loaiDon,
-                              maBan: maBanString,
+                              banId: selectedBan?.id,
                               totalPrice: cart.totalPrice,
                             ),
                           );
@@ -578,7 +578,7 @@ class _MenuViewState extends State<MenuView> {
                           }
                         },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange[400],
+                    backgroundColor: const Color(0xFF6E4423),
                     disabledBackgroundColor: Colors.grey[300],
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -608,10 +608,10 @@ class _MenuViewState extends State<MenuView> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.orange[50], // Thay đổi cho đẹp hơn
+              color: const Color(0xFFFDFBF7), // Thay đổi cho đẹp hơn
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.shopping_bag_outlined, size: 48, color: Colors.orange[300]), // Đổi icon
+            child: Icon(Icons.shopping_bag_outlined, size: 48, color: const Color(0xFF6E4423)), // Đổi icon
           ),
           const SizedBox(height: 16),
           const Text(

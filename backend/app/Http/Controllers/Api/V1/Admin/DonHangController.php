@@ -16,12 +16,12 @@ class DonHangController extends Controller
     {
         try {
             $query = DonHang::with([
-                'chiTietDonHangs.mon:ma_mon,ten_mon,gia_ban',
-                'chiTietDonHangs.kichCo:ma_kich_co,ten_kich_co',
-                'chiTietDonHangs.chiTietToppings.topping:ma_topping,ten_topping,gia_tien',
-                'ban:ma_ban,ten_ban',
-                'nhanSu:ma_nhan_su,ho_ten',
-                'danhGia:ma_danh_gia,ma_don_hang,so_sao,binh_luan',
+                'chiTietDonHangs.mon',
+                'chiTietDonHangs.kichCo',
+                'chiTietDonHangs.chiTietToppings.topping',
+                'ban',
+                'nhanSu',
+                'danhGia',
             ]);
 
             // Filter theo ngày
@@ -38,12 +38,12 @@ class DonHangController extends Controller
             }
 
             // Filter trạng thái đơn
-            if ($request->has('trang_thai_don') && $request->trang_thai_don) {
+            if ($request->has('trang_thai_don') && $request->trang_thai_don !== null) {
                 $query->where('trang_thai_don', $request->trang_thai_don);
             }
 
             // Filter trạng thái thanh toán
-            if ($request->has('trang_thai_thanh_toan') && $request->trang_thai_thanh_toan) {
+            if ($request->has('trang_thai_thanh_toan') && $request->trang_thai_thanh_toan !== null) {
                 $query->where('trang_thai_thanh_toan', $request->trang_thai_thanh_toan);
             }
 
@@ -64,26 +64,27 @@ class DonHangController extends Controller
 
             $donHangs = $query->orderByDesc('created_at')->get();
 
-            // Tính tổng doanh thu theo filter
-            $tongDoanhThu = $donHangs->where('trang_thai_thanh_toan', 'da_thanh_toan')->sum('tong_tien');
+            // Tính tổng doanh thu (Trạng thái thanh toán = 1 là Đã thanh toán)
+            $tongDoanhThu = $donHangs->where('trang_thai_thanh_toan', 1)->sum('tong_tien');
 
             $data = $donHangs->map(function ($dh) {
                 return [
+                    'id' => $dh->id,
                     'ma_don_hang' => $dh->ma_don_hang,
                     'ten_ban' => $dh->ban ? $dh->ban->ten_ban : 'Mang đi',
                     'nhan_vien' => $dh->nhanSu ? $dh->nhanSu->ho_ten : 'Khách QR',
                     'loai_don' => $dh->loai_don,
                     'tong_tien' => (float) $dh->tong_tien,
                     'phuong_thuc_thanh_toan' => $dh->phuong_thuc_thanh_toan,
-                    'trang_thai_thanh_toan' => $dh->trang_thai_thanh_toan,
-                    'trang_thai_don' => $dh->trang_thai_don,
+                    'trang_thai_thanh_toan' => (int)$dh->trang_thai_thanh_toan,
+                    'trang_thai_don' => (int)$dh->trang_thai_don,
+                    'ly_do_huy' => $dh->ly_do_huy,
                     'danh_gia' => $dh->danhGia ? [
                         'so_sao' => $dh->danhGia->so_sao,
                         'binh_luan' => $dh->danhGia->binh_luan,
                     ] : null,
                     'chi_tiets' => $dh->chiTietDonHangs->map(function ($ct) {
                         return [
-                            'ma_chi_tiet' => $ct->ma_chi_tiet,
                             'ten_mon' => $ct->mon ? $ct->mon->ten_mon : 'N/A',
                             'ten_kich_co' => $ct->kichCo ? $ct->kichCo->ten_kich_co : null,
                             'so_luong' => $ct->so_luong,

@@ -18,8 +18,8 @@ class KhoController extends Controller
      */
     public function getTonKho()
     {
-        $nguyenLieus = NguyenLieu::select('ma_nguyen_lieu', 'ten_nguyen_lieu', 'don_vi_tinh', 'ton_kho', 'muc_canh_bao')
-            ->where('trang_thai', 'hoat_dong')
+        $nguyenLieus = NguyenLieu::select('id', 'ma_nguyen_lieu', 'ten_nguyen_lieu', 'don_vi_tinh', 'ton_kho', 'muc_canh_bao')
+            ->where('trang_thai', 1)
             ->orderByRaw("
                 CASE 
                     WHEN ton_kho <= 0 THEN 1

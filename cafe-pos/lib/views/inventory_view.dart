@@ -44,7 +44,7 @@ class _InventoryViewState extends State<InventoryView> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    'Quản lý Tồn Kho',
+                    'Danh sách nguyên liệu',
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -54,7 +54,7 @@ class _InventoryViewState extends State<InventoryView> {
                   // Nút Reload xịn xò
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1), // Nền cam nhạt cho tone-sur-tone với app
+                      color: const Color(0xFF6E4423).withOpacity(0.1), // Nền cam nhạt cho tone-sur-tone với app
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: IconButton(

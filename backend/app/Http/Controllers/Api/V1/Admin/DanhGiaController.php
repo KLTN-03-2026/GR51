@@ -16,7 +16,7 @@ class DanhGiaController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $query = DanhGia::with('donHang:ma_don_hang,ma_ban,tong_tien,created_at');
+            $query = DanhGia::with(['donHang.ban']);
 
             // Filter theo số sao
             if ($request->has('so_sao') && $request->so_sao) {
@@ -37,7 +37,7 @@ class DanhGiaController extends Controller
                 ->map(function ($dg) {
                     return [
                         'ma_danh_gia' => $dg->ma_danh_gia,
-                        'ma_don_hang' => $dg->ma_don_hang,
+                        'ma_don_hang' => $dg->donHang ? $dg->donHang->ma_don_hang : 'N/A',
                         'so_sao' => $dg->so_sao,
                         'binh_luan' => $dg->binh_luan,
                         'tong_tien_don' => $dg->donHang ? (float) $dg->donHang->tong_tien : null,

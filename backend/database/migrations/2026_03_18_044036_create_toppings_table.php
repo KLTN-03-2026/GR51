@@ -6,13 +6,13 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void {
         Schema::create('toppings', function (Blueprint $table) {
-
-            $table->string('ma_topping')->primary();
+            $table->id();
+            $table->string('ma_topping')->unique();
             $table->string('ten_topping');
             $table->string('hinh_anh')->nullable();
             $table->decimal('gia_tien', 15, 2);
-            $table->string('trang_thai');
-                    $table->timestamps();
+            $table->tinyInteger('trang_thai')->default(1)->comment('1: Còn hàng, 0: Hết hàng');
+            $table->timestamps();
         });
     }
 
