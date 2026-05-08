@@ -18,6 +18,7 @@
     </div>
     <div v-if="tab==='ban'">
       <div class="toolbar">
+        <h3>Bàn ({{ bans.length }})</h3>
         <div class="toolbar-actions"><select v-model="banFilter" class="filter-select" @change="loadBans"><option value="">Tất cả khu vực</option><option v-for="k in khuVucs" :key="k.id" :value="k.id">{{ k.ten_khu_vuc }}</option></select></div>
         <button class="btn btn-primary" @click="openBan()">+ Thêm</button>
       </div>

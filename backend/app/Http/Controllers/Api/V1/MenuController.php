@@ -12,8 +12,12 @@ class MenuController extends Controller
 {
     public function index(): JsonResponse
     {
-        // 1. Lấy danh mục kèm món và eager load nguyên liệu để check tồn kho
-        $danhMucs = DanhMuc::with(['mons.congThucs.nguyenLieu'])->get();
+        // 1. Lấy danh mục kèm món và eager load nguyên liệu, topping, size
+        $danhMucs = DanhMuc::with([
+            'mons.congThucs.nguyenLieu',
+            'mons.toppings',
+            'mons.sizes'
+        ])->get();
 
         // Xử lý logic check hết hàng
         $danhMucs->each(function ($danhMuc) {

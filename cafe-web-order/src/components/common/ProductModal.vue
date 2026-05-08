@@ -177,7 +177,7 @@ const close = () => {
                   class="topping-item"
                 >
                   <div class="topping-left">
-                    <input type="checkbox" :value="t.ma_topping" @change="toggleTopping(t.ma_topping)" class="checkbox-custom">
+                    <input type="checkbox" :value="t.ma_topping" :checked="selectedToppingIds.includes(t.ma_topping)" @change="toggleTopping(t.ma_topping)" class="checkbox-custom">
                     <span>{{ t.ten_topping }}</span>
                   </div>
                   <span class="topping-price">+{{ formatPrice(t.gia_tien) }}</span>
@@ -202,16 +202,16 @@ const close = () => {
               <div class="qty-control">
                 <button class="qty-btn" @click="quantity > 1 ? quantity-- : null">-</button>
                 <span class="qty-text">{{ quantity }}</span>
-                <button class="qty-btn" @click="quantity++">+</button>
+                <button class="qty-btn" :class="{ disabled: item.is_het_hang }" @click="!item.is_het_hang ? quantity++ : null">+</button>
               </div>
             </div>
           </div>
 
           <!-- Footer -->
           <div class="modal-footer">
-            <button class="add-btn" @click="addToCart">
-              <span>{{ editItem ? 'Cập nhật' : 'Thêm vào giỏ' }}</span>
-              <span class="total-price">{{ formatPrice(totalPrice) }}</span>
+            <button class="add-btn" :class="{ disabled: item.is_het_hang }" @click="!item.is_het_hang ? addToCart() : null">
+              <span>{{ item.is_het_hang ? 'Món này đã hết hàng' : (editItem ? 'Cập nhật' : 'Thêm vào giỏ') }}</span>
+              <span class="total-price" v-if="!item.is_het_hang">{{ formatPrice(totalPrice) }}</span>
             </button>
           </div>
         </div>
@@ -483,8 +483,18 @@ const close = () => {
   font-weight: 600;
 }
 
-.add-btn:active {
+.add-btn:active:not(.disabled) {
   background-color: var(--color-primary-dark);
+}
+
+.add-btn.disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.qty-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .total-price {

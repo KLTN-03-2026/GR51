@@ -16,7 +16,8 @@ class DonHang extends Model
         'phuong_thuc_thanh_toan',
         'trang_thai_thanh_toan',
         'trang_thai_don',
-        'ly_do_huy'
+        'ly_do_huy',
+        'ghi_chu'
     ];
 
     protected $appends = ['da_danh_gia'];

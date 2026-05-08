@@ -231,6 +231,8 @@ class SmartOrderCard extends StatelessWidget {
               ),
             ),
           
+
+            
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Align(
@@ -312,6 +314,7 @@ class SmartOrderCard extends StatelessWidget {
             ),
           ],
         ),
+
       ],
     );
   }
@@ -345,6 +348,7 @@ class SmartOrderCard extends StatelessWidget {
             )
           ],
         ),
+
       ],
     );
   }
@@ -489,7 +493,7 @@ class SmartOrderCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(child: Text(
                   order.trangThaiDon == 2
-                    ? 'Đơn này đã pha chế xong. Nguyên liệu sẽ được hoàn trả về kho.'
+                    ? 'Đơn này đã pha chế xong. Nguyên liệu sẽ không được hoàn trả về kho.'
                     : 'Đơn này đang pha chế. Huỷ sẽ không ảnh hưởng tồn kho.',
                   style: const TextStyle(fontSize: 13, color: Colors.black87),
                 )),

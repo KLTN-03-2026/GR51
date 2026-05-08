@@ -44,6 +44,17 @@ export default {
     return apiClient.get('/admin/dashboard')
   },
 
+  // ====== BÁO CÁO & THỐNG KÊ ======
+  getReportRevenue(params) {
+    return apiClient.get('/admin/reports/revenue', { params })
+  },
+  getReportBestSellers(params) {
+    return apiClient.get('/admin/reports/best-sellers', { params })
+  },
+  getReportOrdersOverview(params) {
+    return apiClient.get('/admin/reports/orders-overview', { params })
+  },
+
   // ====== DANH MỤC ======
   getDanhMuc() {
     return apiClient.get('/admin/danh-muc')
@@ -98,6 +109,9 @@ export default {
   },
   deleteTopping(id) {
     return apiClient.delete(`/admin/topping/${id}`)
+  },
+  saveToppingCongThuc(id, data) {
+    return apiClient.post(`/admin/topping/${id}/cong-thuc`, data)
   },
 
   // ====== CÔNG THỨC ======

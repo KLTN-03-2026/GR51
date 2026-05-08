@@ -53,6 +53,11 @@ const routes = [
         name: 'shifts',
         component: () => import('@/views/ShiftView.vue'),
       },
+      {
+        path: 'reports',
+        name: 'reports',
+        component: () => import('@/views/ReportsView.vue'),
+      },
     ]
   },
   {

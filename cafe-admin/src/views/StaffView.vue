@@ -1,6 +1,7 @@
 <template>
   <div class="staff-page fade-in">
     <div class="toolbar">
+      <h3>Nhân sự ({{ items.length }})</h3>
       <div class="toolbar-actions">
         <input v-model="search" placeholder="Tìm nhân sự..." class="search-input" @input="load" />
         <select v-model="roleFilter" class="filter-select" @change="load">

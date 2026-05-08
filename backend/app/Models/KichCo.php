@@ -13,4 +13,9 @@ class KichCo extends Model
     {
         return $this->hasMany(ChiTietDonHang::class, 'kich_co_id');
     }
+
+    public function mons()
+    {
+        return $this->belongsToMany(Mon::class, 'mon_kich_co', 'kich_co_id', 'mon_id');
+    }
 }

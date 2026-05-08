@@ -50,7 +50,7 @@
         </div>
         <div class="overall-item">
           <span class="overall-label">⭐ Đánh giá TB</span>
-          <span class="overall-value">{{ data.danh_gia_trung_binh || '—' }}</span>
+          <span class="overall-value">{{ data.thong_ke_tong_hop?.danh_gia_trung_binh || '—' }}</span>
         </div>
       </div>
 
@@ -204,7 +204,12 @@ function buildOrderChart() {
     data: {
       labels: ['Chờ xác nhận', 'Đang pha', 'Hoàn thành', 'Đã hủy'],
       datasets: [{
-        data: [d[0] || 0, d[1] || 0, d[2] || 0, d[3] || 0],
+        data: [
+          d.cho_xu_ly || 0,
+          d.dang_pha || 0,
+          d.hoan_thanh || 0,
+          d.da_huy || 0
+        ],
         backgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#94a3b8'],
         borderWidth: 0,
       }]

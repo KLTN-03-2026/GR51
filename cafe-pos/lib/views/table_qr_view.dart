@@ -18,7 +18,7 @@ class _TableQrViewState extends State<TableQrView> {
   List<KhuVuc> _khuVucs = [];
 
   // Default IP config text controller for development
-  final TextEditingController _domainController = TextEditingController(text: 'http://192.168.100.230:5173');
+  final TextEditingController _domainController = TextEditingController(text: 'http://192.168.11.247:5173');
 
   @override
   void initState() {

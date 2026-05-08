@@ -13,7 +13,7 @@ class KhuVucController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data' => KhuVuc::orderBy('ten_khu_vuc')->get()
+            'data' => KhuVuc::withCount('bans')->orderBy('ten_khu_vuc')->get()
         ]);
     }
 

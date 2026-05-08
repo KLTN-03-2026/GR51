@@ -7,6 +7,8 @@ use App\Models\KhuVuc;
 use App\Models\Ban;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Events\StaffCalled;
+
 
 class TableController extends Controller
 {
@@ -52,6 +54,25 @@ class TableController extends Controller
                 'ten_ban' => $ban->ten_ban,
                 'trang_thai' => (int)$ban->trang_thai,
             ]
+        ]);
+    }
+
+    public function callStaff($id): JsonResponse
+    {
+        $ban = is_numeric($id) 
+            ? Ban::find($id) 
+            : Ban::where('ma_ban', $id)->first();
+        
+        if (!$ban) {
+            return response()->json(['success' => false, 'message' => 'Không tìm thấy bàn'], 404);
+        }
+
+        // Dispatch event for real-time notification
+        broadcast(new StaffCalled($ban));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã gọi nhân viên thành công'
         ]);
     }
 }

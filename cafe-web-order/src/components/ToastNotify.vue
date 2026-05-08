@@ -13,10 +13,10 @@
       <div v-if="confirmData" class="confirm-overlay" @click.self="resolveConfirm(false)">
         <div class="confirm-box">
           <div class="confirm-icon">⚠️</div>
-          <p class="confirm-msg">{{ confirmData.message }}</p>
+          <p class="confirm-msg" style="white-space: pre-line;">{{ confirmData.message }}</p>
           <div class="confirm-actions">
-            <button class="confirm-btn cancel" @click="resolveConfirm(false)">Quay lại</button>
-            <button class="confirm-btn ok" @click="resolveConfirm(true)">Xác nhận</button>
+            <button class="confirm-btn cancel" @click="resolveConfirm(false)">{{ confirmData.cancelText || 'Quay lại' }}</button>
+            <button class="confirm-btn ok" @click="resolveConfirm(true)">{{ confirmData.okText || 'Xác nhận' }}</button>
           </div>
         </div>
       </div>
@@ -41,9 +41,9 @@ const showToast = (message, type = 'info', duration = 3000) => {
   }, duration)
 }
 
-const showConfirm = (message) => {
+const showConfirm = (message, okText = 'Xác nhận', cancelText = 'Quay lại') => {
   return new Promise((resolve) => {
-    confirmData.value = { message }
+    confirmData.value = { message, okText, cancelText }
     confirmResolver = resolve
   })
 }

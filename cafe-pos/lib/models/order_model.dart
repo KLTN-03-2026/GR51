@@ -17,6 +17,7 @@ class DonHang {
   final int? priorityScore;
   final List<ChiTietDonHang> chiTietDonHangs;
   final Ban? ban;
+  final String? ghiChu;
 
   DonHang({
     required this.id,
@@ -34,6 +35,7 @@ class DonHang {
     this.priorityScore,
     required this.chiTietDonHangs,
     this.ban,
+    this.ghiChu,
   });
 
   factory DonHang.fromJson(Map<String, dynamic> json) {
@@ -56,6 +58,7 @@ class DonHang {
       priorityScore: (json['priority_score'] as num?)?.toInt(),
       chiTietDonHangs: chiTiets,
       ban: json['ban'] != null ? Ban.fromJson(json['ban']) : null,
+      ghiChu: json['ghi_chu'],
     );
   }
 }

@@ -59,6 +59,8 @@ const cartTotal = computed(() => {
                   <p v-if="item.ghi_chu" class="item-note">{{ item.ghi_chu }}</p>
                   <p class="item-price">{{ formatPrice(item.gia_ban) }}</p>
                   
+                  <div v-if="item.is_het_hang" class="out-of-stock-msg">Món này hiện đã hết hàng</div>
+                  
                   <div class="item-actions">
                     <button class="icon-btn trash-btn" @click="emit('remove', item)">
                       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
@@ -66,7 +68,7 @@ const cartTotal = computed(() => {
                     <div class="qty-control">
                       <button class="qty-btn" @click="emit('update-quantity', { item, delta: -1 })">-</button>
                       <span class="qty-text">{{ item.quantity }}</span>
-                      <button class="qty-btn" @click="emit('update-quantity', { item, delta: 1 })">+</button>
+                      <button class="qty-btn" :class="{ disabled: item.is_het_hang }" @click="!item.is_het_hang ? emit('update-quantity', { item, delta: 1 }) : null">+</button>
                     </div>
                   </div>
                 </div>
@@ -94,8 +96,12 @@ const cartTotal = computed(() => {
               <span class="label">Tổng cộng</span>
               <span class="value">{{ formatPrice(cartTotal) }}</span>
             </div>
-            <button class="checkout-btn" @click="emit('submit-order', paymentMethod)" :disabled="cart.length === 0">
-              Đặt hàng
+            <button 
+              class="checkout-btn" 
+              @click="emit('submit-order', paymentMethod)" 
+              :disabled="cart.length === 0 || cart.some(i => i.is_het_hang)"
+            >
+              {{ cart.some(i => i.is_het_hang) ? 'Vui lòng bỏ món hết hàng' : 'Đặt hàng' }}
             </button>
           </div>
         </div>
@@ -246,6 +252,13 @@ const cartTotal = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.icon-btn:hover {
+  opacity: 0.7;
+  transform: scale(1.1);
 }
 
 .focus-btn {
@@ -363,6 +376,18 @@ const cartTotal = computed(() => {
   font-size: 15px;
   color: var(--color-text-main);
   font-weight: 500;
+}
+
+.out-of-stock-msg {
+  color: #EF4444;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.qty-btn.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 /* Slide Right Animation */

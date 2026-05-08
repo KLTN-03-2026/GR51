@@ -202,6 +202,14 @@ class _OrderHistoryViewState extends State<OrderHistoryView> {
                   ),
                 ],
               ),
+              if (order.ghiChu != null && order.ghiChu!.trim().isNotEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(8),
+                  margin: const EdgeInsets.only(top: 8),
+                  decoration: BoxDecoration(color: Colors.amber[50], borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.amber[200]!)),
+                  child: Text('Ghi chú: ${order.ghiChu}', style: TextStyle(fontSize: 13, color: Colors.amber[900], fontWeight: FontWeight.bold)),
+                ),
               const SizedBox(height: 8),
               const Divider(),
             ],

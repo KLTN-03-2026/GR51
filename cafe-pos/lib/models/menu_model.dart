@@ -32,6 +32,8 @@ class Mon {
   final String? hinhAnh;
   final int danhMucId;
   final bool isHetHang;
+  final List<dynamic>? sizes;
+  final List<dynamic>? toppings;
 
   Mon({
     required this.id,
@@ -41,6 +43,8 @@ class Mon {
     this.hinhAnh,
     required this.danhMucId,
     this.isHetHang = false,
+    this.sizes,
+    this.toppings,
   });
 
   factory Mon.fromJson(Map<String, dynamic> json) {
@@ -52,6 +56,8 @@ class Mon {
       hinhAnh: json['hinh_anh'],
       danhMucId: int.tryParse(json['danh_muc_id']?.toString() ?? '') ?? 0,
       isHetHang: json['is_het_hang'] == true || json['is_het_hang'] == 1,
+      sizes: json['sizes'] as List?,
+      toppings: json['toppings'] as List?,
     );
   }
 

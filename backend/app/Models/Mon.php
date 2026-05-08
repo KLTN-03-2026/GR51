@@ -23,4 +23,14 @@ class Mon extends Model
     {
         return $this->hasMany(CongThuc::class, 'mon_id');
     }
+
+    public function toppings()
+    {
+        return $this->belongsToMany(Topping::class, 'mon_topping', 'mon_id', 'topping_id');
+    }
+
+    public function sizes()
+    {
+        return $this->belongsToMany(KichCo::class, 'mon_kich_co', 'mon_id', 'kich_co_id');
+    }
 }

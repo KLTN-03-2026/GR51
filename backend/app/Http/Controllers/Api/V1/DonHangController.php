@@ -16,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use App\Events\OrderCreated;
 
 class DonHangController extends Controller
 {
@@ -112,6 +113,13 @@ class DonHangController extends Controller
                 'trang_thai_don' => $request->input('trang_thai_don') ?? 1, 
             ]);
 
+            // Cập nhật trạng thái bàn sang "Có khách" (2)
+            if ($ban) {
+                $ban->trang_thai = 2;
+                $ban->save();
+            }
+
+            $orderGhiChu = [];
             foreach ($chiTiets as $item) {
                 $mon = Mon::find($item['mon_id']);
                 $giaMon = $mon->gia_ban;
@@ -130,6 +138,10 @@ class DonHangController extends Controller
                     'ghi_chu' => $item['ghi_chu'] ?? null,
                 ]);
 
+                if (!empty($item['ghi_chu'])) {
+                    $orderGhiChu[] = $item['ghi_chu'];
+                }
+
                 $toppingIds = $item['topping_ids'] ?? $item['toppings'] ?? [];
                 foreach ($toppingIds as $tpId) {
                     $id = is_array($tpId) ? ($tpId['topping_id'] ?? $tpId['id']) : $tpId;
@@ -144,6 +156,16 @@ class DonHangController extends Controller
                         ]);
                     }
                 }
+            }
+
+            if (!empty($orderGhiChu)) {
+                $donHang->ghi_chu = implode('; ', $orderGhiChu);
+                $donHang->save();
+            }
+
+            // Trừ kho ngay nếu đơn hàng bắt đầu pha (1) hoặc hoàn thành (2)
+            if ($donHang->trang_thai_don == 1 || $donHang->trang_thai_don == 2) {
+                $this->deductInventory($donHang);
             }
 
             DB::commit();
@@ -193,6 +215,13 @@ class DonHangController extends Controller
             $ban = Ban::where('id', $request->input('ban_id'))
                       ->orWhere('ma_ban', $request->input('ma_ban'))->first();
 
+            // Kiểm tra tồn kho
+            $inventoryErrors = $this->validateInventory($chiTiets);
+            if (!empty($inventoryErrors)) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => 'Không đủ nguyên liệu', 'errors' => $inventoryErrors], 422);
+            }
+
             $donHang = DonHang::create([
                 'ma_don_hang' => 'DH_' . uniqid(),
                 'ban_id' => $ban ? $ban->id : null,
@@ -200,9 +229,16 @@ class DonHangController extends Controller
                 'tong_tien' => $tongTien,
                 'phuong_thuc_thanh_toan' => $request->input('phuong_thuc_thanh_toan', 'tien_mat'),
                 'trang_thai_thanh_toan' => 0,
-                'trang_thai_don' => 0, // Chờ xác nhận
+                'trang_thai_don' => 1, // Nhảy vào pha chế luôn (Đang pha)
             ]);
 
+            // Cập nhật trạng thái bàn sang "Có khách" (2)
+            if ($ban) {
+                $ban->trang_thai = 2;
+                $ban->save();
+            }
+
+            $orderGhiChu = [];
             foreach ($chiTiets as $item) {
                 ChiTietDonHang::create([
                     'ma_chi_tiet' => 'CT_' . uniqid(),
@@ -210,10 +246,26 @@ class DonHangController extends Controller
                     'mon_id' => $item['mon_id'],
                     'so_luong' => $item['so_luong'],
                     'don_gia' => $item['don_gia'],
+                    'ghi_chu' => $item['ghi_chu'] ?? null,
                 ]);
+                if (!empty($item['ghi_chu'])) {
+                    $orderGhiChu[] = $item['ghi_chu'];
+                }
             }
 
+            if (!empty($orderGhiChu)) {
+                $donHang->ghi_chu = implode('; ', $orderGhiChu);
+                $donHang->save();
+            }
+
+            // Trừ kho ngay lập tức cho đơn QR vì nó nhảy vào pha chế luôn
+            $this->deductInventory($donHang);
+
             DB::commit();
+            
+            // Dispatch event for real-time notification
+            broadcast(new OrderCreated($donHang->load(['chiTietDonHangs.mon', 'ban', 'chiTietDonHangs.kichCo', 'chiTietDonHangs.chiTietToppings.topping'])));
+            
             return response()->json(['success' => true, 'data' => $donHang], 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -240,14 +292,15 @@ class DonHangController extends Controller
             if ($request->has('trang_thai_don')) {
                 $newStatus = (int)$request->input('trang_thai_don');
                 
-                // Logic trừ kho khi hoàn thành (2)
-                if ($newStatus == 2 && $oldStatus != 2) {
+                // Logic trừ kho: Nếu từ Chờ xác nhận (0) chuyển sang Đang pha (1) hoặc Hoàn thành (2)
+                if (($newStatus == 1 || $newStatus == 2) && $oldStatus == 0) {
+                    // Kiểm tra tồn kho trước khi chuyển trạng thái
+                    $inventoryErrors = $this->validateInventory($donHang);
+                    if (!empty($inventoryErrors)) {
+                        DB::rollBack();
+                        return response()->json(['success' => false, 'message' => 'Không đủ nguyên liệu để chuẩn bị đơn', 'errors' => $inventoryErrors], 422);
+                    }
                     $this->deductInventory($donHang);
-                }
-                
-                // Logic hoàn kho nếu đơn đã hoàn thành nhưng giờ chuyển trạng thái khác (hủy hoặc quay lại chuẩn bị)
-                if ($oldStatus == 2 && $newStatus != 2) {
-                    $this->restoreInventory($donHang);
                 }
 
                 $donHang->trang_thai_don = $newStatus;
@@ -267,6 +320,17 @@ class DonHangController extends Controller
             }
 
             $donHang->save();
+
+            // Nếu đơn hàng Hoàn thành (2) VÀ đã Thanh toán (1), hoặc đơn bị Hủy (3) -> Giải phóng bàn
+            if (($donHang->trang_thai_don == 2 && $donHang->trang_thai_thanh_toan == 1) || $donHang->trang_thai_don == 3) {
+                if ($donHang->ban_id) {
+                    $ban = Ban::find($donHang->ban_id);
+                    if ($ban) {
+                        $ban->trang_thai = 1; // Trống
+                        $ban->save();
+                    }
+                }
+            }
 
             DB::commit();
             return response()->json(['success' => true, 'data' => $donHang->load(['chiTietDonHangs.mon', 'ban', 'chiTietDonHangs.kichCo', 'chiTietDonHangs.chiTietToppings.topping'])]);
@@ -290,19 +354,21 @@ class DonHangController extends Controller
 
             if (!$donHang) return response()->json(['success' => false, 'message' => 'Không thấy đơn'], 404);
 
-            $oldStatus = (int)$donHang->trang_thai_don;
-            
-            // Hoàn kho nếu đơn đã hoàn thành
-            if ($oldStatus == 2) {
-                $this->restoreInventory($donHang);
-            }
-
             $donHang->trang_thai_don = 3; // Đã hủy
             $donHang->ly_do_huy = $request->input('ly_do_huy', 'Nhân viên hủy đơn');
             $donHang->save();
 
+            // Giải phóng bàn khi hủy
+            if ($donHang->ban_id) {
+                $ban = Ban::find($donHang->ban_id);
+                if ($ban) {
+                    $ban->trang_thai = 1; // Trống
+                    $ban->save();
+                }
+            }
+
             DB::commit();
-            return response()->json(['success' => true, 'message' => 'Đã hủy đơn hàng']);
+            return response()->json(['success' => true, 'message' => 'Đã hủy đơn hàng. Nguyên liệu không được hoàn trả vì đã được pha chế.']);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
@@ -324,7 +390,7 @@ class DonHangController extends Controller
             if (!$donHang) return response()->json(['success' => false, 'message' => 'Không thấy đơn'], 404);
 
             if ($donHang->trang_thai_don != 0) {
-                return response()->json(['success' => false, 'message' => 'Đơn hàng đang xử lý, không thể tự hủy.'], 400);
+                return response()->json(['success' => false, 'message' => 'Đơn hàng đã được đưa vào pha chế, khách hàng không thể tự hủy.'], 400);
             }
 
             $donHang->trang_thai_don = 3; // Đã hủy
@@ -341,8 +407,9 @@ class DonHangController extends Controller
 
     private function deductInventory(DonHang $donHang)
     {
-        $donHang->load('chiTietDonHangs.mon.congThucs');
+        $donHang->load(['chiTietDonHangs.mon.congThucs', 'chiTietDonHangs.chiTietToppings.topping.congThucs']);
         foreach ($donHang->chiTietDonHangs as $chiTiet) {
+            // Trừ kho món chính
             if ($chiTiet->mon && $chiTiet->mon->congThucs) {
                 foreach ($chiTiet->mon->congThucs as $ct) {
                     $qty = $ct->so_luong_can * $chiTiet->so_luong;
@@ -356,13 +423,32 @@ class DonHangController extends Controller
                     ]);
                 }
             }
+
+            // Trừ kho toppings
+            foreach ($chiTiet->chiTietToppings as $ctt) {
+                if ($ctt->topping && $ctt->topping->congThucs) {
+                    foreach ($ctt->topping->congThucs as $ct) {
+                        // Topping cũng nhân với số lượng của món chính
+                        $qty = $ct->so_luong_can * $chiTiet->so_luong;
+                        NguyenLieu::where('id', $ct->nguyen_lieu_id)->decrement('ton_kho', $qty);
+                        LichSuKho::create([
+                            'ma_ls_kho' => 'LSK_' . uniqid(),
+                            'nguyen_lieu_id' => $ct->nguyen_lieu_id,
+                            'nhan_su_id' => Auth::id(),
+                            'loai_giao_dich' => 2, // Xuất
+                            'so_luong_thay_doi' => -$qty
+                        ]);
+                    }
+                }
+            }
         }
     }
 
     private function restoreInventory(DonHang $donHang)
     {
-        $donHang->load('chiTietDonHangs.mon.congThucs');
+        $donHang->load(['chiTietDonHangs.mon.congThucs', 'chiTietDonHangs.chiTietToppings.topping.congThucs']);
         foreach ($donHang->chiTietDonHangs as $chiTiet) {
+            // Hoàn kho món chính
             if ($chiTiet->mon && $chiTiet->mon->congThucs) {
                 foreach ($chiTiet->mon->congThucs as $ct) {
                     $qty = $ct->so_luong_can * $chiTiet->so_luong;
@@ -376,24 +462,85 @@ class DonHangController extends Controller
                     ]);
                 }
             }
+
+            // Hoàn kho toppings
+            foreach ($chiTiet->chiTietToppings as $ctt) {
+                if ($ctt->topping && $ctt->topping->congThucs) {
+                    foreach ($ctt->topping->congThucs as $ct) {
+                        $qty = $ct->so_luong_can * $chiTiet->so_luong;
+                        NguyenLieu::where('id', $ct->nguyen_lieu_id)->increment('ton_kho', $qty);
+                        LichSuKho::create([
+                            'ma_ls_kho' => 'LSK_' . uniqid(),
+                            'nguyen_lieu_id' => $ct->nguyen_lieu_id,
+                            'nhan_su_id' => Auth::id(),
+                            'loai_giao_dich' => 1, // Nhập (Hoàn lại)
+                            'so_luong_thay_doi' => $qty
+                        ]);
+                    }
+                }
+            }
         }
     }
 
-    private function validateInventory(array $chiTiets): array
+    /**
+     * Kiểm tra tồn kho
+     * @param array|DonHang $items
+     */
+    private function validateInventory($items): array
     {
         $errors = [];
         $required = [];
-        foreach ($chiTiets as $item) {
-            $mon = Mon::with('congThucs')->find($item['mon_id']);
-            if (!$mon) continue;
-            foreach ($mon->congThucs as $ct) {
-                $required[$ct->nguyen_lieu_id] = ($required[$ct->nguyen_lieu_id] ?? 0) + ($ct->so_luong_can * $item['so_luong']);
+
+        if ($items instanceof DonHang) {
+            $items->load(['chiTietDonHangs.mon.congThucs', 'chiTietDonHangs.chiTietToppings.topping.congThucs']);
+            foreach ($items->chiTietDonHangs as $chiTiet) {
+                // Yêu cầu cho món chính
+                if ($chiTiet->mon) {
+                    foreach ($chiTiet->mon->congThucs as $ct) {
+                        $required[$ct->nguyen_lieu_id] = ($required[$ct->nguyen_lieu_id] ?? 0) + ($ct->so_luong_can * $chiTiet->so_luong);
+                    }
+                }
+                // Yêu cầu cho toppings
+                foreach ($chiTiet->chiTietToppings as $ctt) {
+                    if ($ctt->topping) {
+                        foreach ($ctt->topping->congThucs as $ct) {
+                            $required[$ct->nguyen_lieu_id] = ($required[$ct->nguyen_lieu_id] ?? 0) + ($ct->so_luong_can * $chiTiet->so_luong);
+                        }
+                    }
+                }
+            }
+        } else {
+            foreach ($items as $item) {
+                // Yêu cầu cho món chính
+                $mon = Mon::with('congThucs')->find($item['mon_id']);
+                if ($mon) {
+                    foreach ($mon->congThucs as $ct) {
+                        $required[$ct->nguyen_lieu_id] = ($required[$ct->nguyen_lieu_id] ?? 0) + ($ct->so_luong_can * $item['so_luong']);
+                    }
+                }
+
+                // Yêu cầu cho toppings
+                $toppingIds = $item['topping_ids'] ?? $item['toppings'] ?? [];
+                foreach ($toppingIds as $tpId) {
+                    $id = is_array($tpId) ? ($tpId['topping_id'] ?? $tpId['id']) : $tpId;
+                    $tp = Topping::with('congThucs')->find($id);
+                    if ($tp) {
+                        foreach ($tp->congThucs as $ct) {
+                            $required[$ct->nguyen_lieu_id] = ($required[$ct->nguyen_lieu_id] ?? 0) + ($ct->so_luong_can * $item['so_luong']);
+                        }
+                    }
+                }
             }
         }
+
         foreach ($required as $id => $needed) {
             $nl = NguyenLieu::find($id);
             if (!$nl || $nl->ton_kho < $needed) {
-                $errors[] = ['nguyen_lieu' => $nl ? $nl->ten_nguyen_lieu : 'N/A', 'ton_kho' => $nl ? $nl->ton_kho : 0, 'can' => $needed];
+                $errors[] = [
+                    'nguyen_lieu' => $nl ? $nl->ten_nguyen_lieu : 'N/A', 
+                    'ton_kho' => $nl ? (float)$nl->ton_kho : 0, 
+                    'can' => (float)$needed
+                ];
             }
         }
         return $errors;

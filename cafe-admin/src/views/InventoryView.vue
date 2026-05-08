@@ -7,6 +7,7 @@
 
     <div v-if="tab === 'list'">
       <div class="toolbar">
+        <h3>Nguyên liệu ({{ items.length }})</h3>
         <div class="toolbar-actions">
           <input v-model="search" placeholder="Tìm nguyên liệu..." class="search-input" @input="load" />
           <select v-model="filter" class="filter-select" @change="load">

@@ -13,7 +13,7 @@ class DanhMucController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data' => DanhMuc::orderBy('ten_danh_muc')->get()
+            'data' => DanhMuc::withCount('mons')->orderBy('ten_danh_muc')->get()
         ]);
     }
 

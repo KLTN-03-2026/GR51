@@ -15,19 +15,32 @@ class MenuViewModel extends ChangeNotifier {
   List<dynamic> listSizes = []; // Hứng dữ liệu Size
   List<dynamic> listToppings = []; // Hứng dữ liệu Topping
   DanhMuc? selectedDanhMuc;
+  String searchQuery = "";
 
   List<Mon> get filteredItems {
+    List<Mon> items = [];
     if (selectedDanhMuc == null) {
-      List<Mon> all = [];
       for (var cat in danhMucs) {
         if (cat.mons != null) {
-          all.addAll(cat.mons!);
+          items.addAll(cat.mons!);
         }
       }
-      return all;
     } else {
-      return selectedDanhMuc!.mons ?? [];
+      items = List.from(selectedDanhMuc!.mons ?? []);
     }
+
+    if (searchQuery.isNotEmpty) {
+      final query = searchQuery.toLowerCase();
+      items = items.where((mon) {
+        return mon.tenMon.toLowerCase().contains(query);
+      }).toList();
+    }
+    return items;
+  }
+
+  void setSearchQuery(String query) {
+    searchQuery = query;
+    notifyListeners();
   }
 
   Future<void> fetchMenuData() async {

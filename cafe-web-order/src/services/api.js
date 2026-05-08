@@ -1,6 +1,6 @@
 import axios from 'axios'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
+// localhost:8000
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api/v1'
 
 const apiClient = axios.create({
   baseURL: API_URL,
@@ -39,5 +39,10 @@ export default {
   // Huỷ đơn hàng (khách hàng)
   cancelOrderQr(maDonHang, lyDo = 'Khách hàng tự hủy') {
     return apiClient.put(`/don-hang/qr/${maDonHang}/huy`, { ly_do_huy: lyDo })
+  },
+  
+  // Gọi nhân viên
+  callStaff(maBan) {
+    return apiClient.post(`/tables/${maBan}/call-staff`)
   }
 }

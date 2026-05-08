@@ -20,6 +20,7 @@ const isCartDrawerOpen = ref(false);
 const availableToppings = ref([]);
 const availableSizes = ref([]);
 const storeOpen = ref(true);
+const searchQuery = ref("");
 
 const toastMessage = ref('');
 const showToast = ref(false);
@@ -52,6 +53,14 @@ onMounted(async () => {
       availableToppings.value = response.data.data.toppings || [];
       availableSizes.value = response.data.data.sizes || [];
       storeOpen.value = response.data.data.is_open !== false;
+      
+      // Đồng bộ trạng thái hết hàng vào giỏ hàng hiện tại
+      cart.value.forEach(item => {
+        const menuProduct = menuItems.value.find(m => m.id === item.id);
+        if (menuProduct) {
+          item.is_het_hang = menuProduct.is_het_hang;
+        }
+      });
     }
   } catch (error) {
     console.error("Lỗi lấy menu:", error);
@@ -61,8 +70,21 @@ onMounted(async () => {
 });
 
 const filteredMenu = computed(() => {
-  if (activeCategory.value === "Tất cả") return menuItems.value;
-  return menuItems.value.filter(item => item.danh_muc_name === activeCategory.value);
+  let filtered = menuItems.value;
+  
+  if (activeCategory.value !== "Tất cả") {
+    filtered = filtered.filter(item => item.danh_muc_name === activeCategory.value);
+  }
+  
+  if (searchQuery.value.trim() !== "") {
+    const query = searchQuery.value.toLowerCase();
+    filtered = filtered.filter(item => 
+      item.ten_mon.toLowerCase().includes(query) || 
+      (item.mo_ta && item.mo_ta.toLowerCase().includes(query))
+    );
+  }
+  
+  return filtered;
 });
 
 const formatPrice = (price) => new Intl.NumberFormat("vi-VN").format(price) + 'đ';
@@ -88,6 +110,14 @@ const handleAddToCart = (payload, isEdit) => {
 const updateCartQuantity = ({ item, delta }) => {
   const existing = cart.value.find(i => i.cartItemId === item.cartItemId);
   if (existing) {
+    if (delta > 0) {
+      // Tìm lại sản phẩm trong menu để lấy trạng thái mới nhất
+      const menuProduct = menuItems.value.find(m => m.id === item.id);
+      if (menuProduct && menuProduct.is_het_hang) {
+        notify(`Món ${item.ten_mon} hiện đã hết hàng!`);
+        return;
+      }
+    }
     existing.quantity += delta;
     if (existing.quantity <= 0) removeCartItem(item);
   }
@@ -102,24 +132,50 @@ const submitOrder = (paymentMethod) => {
   isCartDrawerOpen.value = false;
   emit('submit-order', paymentMethod);
 };
+
+const handleEditCartItem = (item) => {
+  editItemData.value = { ...item };
+  // Tìm món gốc trong menu để truyền vào modal
+  selectedItem.value = menuItems.value.find(i => i.id === item.id);
+  showModal.value = true;
+  isCartDrawerOpen.value = false;
+};
 </script>
 
 <template>
   <div class="menu-view animate-fade-in">
-    <header class="top-header">
-      <div class="logo">
-        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>
-        <div class="brand-text">
-          <h1 class="brand-name">Gunpla Coffe</h1>
-          <p class="brand-slogan">Nơi hương vị thăng hoa</p>
-        </div>
-      </div>
-      <div v-if="tableCode" class="table-badge">{{ tableName || "Bàn " + tableCode }}</div>
-    </header>
+  <header class="top-header">
+  <div class="logo">
+    <img src="../assets//images/logo3.png" alt="Gunpla Coffee Logo" class="brand-logo-img">
+    
+    <div class="brand-text">
+      <h1 class="brand-name">Gunpla Coffee</h1>
+      <p class="brand-slogan">Nơi hương vị thăng hoa</p>
+    </div>
+  </div>
+  <div v-if="tableCode" class="table-badge">{{ tableName || "Bàn " + tableCode }}</div>
+</header>
 
     <div v-if="!storeOpen" class="closed-banner">
       <div class="banner-content"><span>Cửa hàng hiện đang tạm nghỉ.</span></div>
     </div>
+
+    <section class="search-section">
+      <div class="search-container">
+        <div class="search-box">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input 
+            type="text" 
+            v-model="searchQuery" 
+            placeholder="Tìm kiếm món uống yêu thích..." 
+            class="search-input"
+          />
+          <button v-if="searchQuery" @click="searchQuery = ''" class="clear-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        </div>
+      </div>
+    </section>
 
     <section class="category-section">
       <div class="category-scroll">
@@ -129,13 +185,17 @@ const submitOrder = (paymentMethod) => {
 
     <section class="product-list">
       <div v-if="loading" class="loading-state">Đang tải...</div>
+      <div v-else-if="filteredMenu.length === 0" class="empty-state">
+        <p>Không tìm thấy món nào khớp với tìm kiếm của bạn.</p>
+        <button @click="searchQuery = ''; activeCategory = 'Tất cả'" class="reset-btn">Xem tất cả món</button>
+      </div>
       <div v-else v-for="item in filteredMenu" :key="item.id" class="product-card">
         <div class="product-img">
           <img :src="item.hinh_anh && item.hinh_anh !== 'default.jpg' ? (item.hinh_anh.startsWith('http') ? item.hinh_anh : 'http://localhost:8000/storage/' + item.hinh_anh) : 'https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&q=80&w=400&h=300'" :alt="item.ten_mon" />
         </div>
         <div class="product-info">
           <h3 class="product-title">{{ item.ten_mon }}</h3>
-          <p class="product-desc">{{ item.mo_ta || "Thưởng thức hương vị cà phê nguyên chất." }}</p>
+          <!-- <p class="product-desc">{{ item.mo_ta || "Thưởng thức hương vị cà phê nguyên chất." }}</p> -->
           <div class="product-action">
             <span class="product-price">{{ formatPrice(item.gia_ban) }}</span>
             <button class="add-btn" :class="{ disabled: !storeOpen || item.is_het_hang }" @click="storeOpen && !item.is_het_hang ? openModal(item) : null">
@@ -155,8 +215,8 @@ const submitOrder = (paymentMethod) => {
       </button>
     </Teleport>
 
-    <ProductModal :is-open="showModal" :item="selectedItem" :edit-item="editItemData" :toppings="availableToppings" :sizes="availableSizes" @close="showModal = false" @add-to-cart="handleAddToCart" />
-    <CartDrawer :is-open="isCartDrawerOpen" :cart="cart" @close="isCartDrawerOpen = false" @update-quantity="updateCartQuantity" @remove="removeCartItem" @submit-order="submitOrder" />
+    <ProductModal :is-open="showModal" :item="selectedItem" :toppings="selectedItem?.toppings || []" :sizes="selectedItem?.sizes || []" :edit-item="editItemData" @close="showModal = false" @add-to-cart="handleAddToCart" />
+    <CartDrawer :is-open="isCartDrawerOpen" :cart="cart" @close="isCartDrawerOpen = false" @update-quantity="updateCartQuantity" @remove="removeCartItem" @submit-order="submitOrder" @edit="handleEditCartItem" />
   </div>
 </template>
 
@@ -182,4 +242,64 @@ const submitOrder = (paymentMethod) => {
 .add-btn.disabled { background: #ccc; }
 .fab-cart { position: fixed; bottom: 80px; right: 20px; width: 56px; height: 56px; background: var(--color-primary); border-radius: 28px; color: #fff; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
 .fab-badge { position: absolute; top: -5px; right: -5px; background: #ff4d4f; width: 20px; height: 20px; border-radius: 10px; font-size: 11px; display: flex; justify-content: center; align-items: center; }
+
+/* Search Styles */
+.search-section {
+  padding: 10px 20px;
+  background: #fff;
+}
+.search-container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #f3f4f6;
+  border-radius: 12px;
+  padding: 0 12px;
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+}
+.search-box:focus-within {
+  background: #fff;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
+}
+.search-icon {
+  color: #9ca3af;
+  margin-right: 8px;
+}
+.search-input {
+  width: 100%;
+  padding: 12px 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 15px;
+  color: #1f2937;
+}
+.clear-btn {
+  color: #9ca3af;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+.clear-btn:hover {
+  color: #4b5563;
+}
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6b7280;
+}
+.reset-btn {
+  margin-top: 12px;
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: underline;
+}
 </style>

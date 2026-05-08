@@ -4,9 +4,150 @@ import '../../models/order_model.dart';
 import '../../services/api_service.dart';
 import '../../main.dart';
 import 'auth_viewmodel.dart';
+import 'package:dart_pusher_channels/dart_pusher_channels.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'dart:convert';
 
 class OrderViewModel extends ChangeNotifier {
   final ApiService _apiService = ApiService();
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  PusherChannelsClient? _pusherClient;
+
+  OrderViewModel() {
+    initPusher();
+  }
+
+  void initPusher() {
+    try {
+      final options = PusherChannelsOptions.fromHost(
+        scheme: 'ws',
+        host: '127.0.0.1',
+        port: 8080,
+        key: 'my_reverb_key',
+      );
+
+      _pusherClient = PusherChannelsClient.websocket(
+        options: options,
+        connectionErrorHandler: (exception, trace, client) {
+          debugPrint("❌ Pusher Connection Error: $exception");
+        },
+      );
+
+      final channel = _pusherClient!.publicChannel('pos-orders');
+
+      // Theo dõi trạng thái kết nối
+      _pusherClient!.lifecycleStream.listen((state) {
+        debugPrint("🌐 Pusher State: $state");
+        if (state == PusherChannelsClientLifeCycleState.establishedConnection) {
+          debugPrint("🌐 Đã kết nối Reverb, tiến hành subscribe kênh pos-orders...");
+          channel.subscribe();
+        }
+      });
+      // Lắng nghe mọi sự kiện trên channel để debug
+      channel.bind('new-order').listen((event) {
+        debugPrint("🔔 NHẬN ĐƠN HÀNG MỚI (new-order)!");
+        loadOrdersSilently();
+        playSoundAndNotify();
+      });
+
+      channel.bind('App\\Events\\OrderCreated').listen((event) {
+        debugPrint("🔔 NHẬN ĐƠN HÀNG MỚI (App\\Events\\OrderCreated)!");
+        loadOrdersSilently();
+        playSoundAndNotify();
+      });
+
+      channel.bind('staff-called').listen((event) {
+        String tableName = "không rõ";
+        try {
+          final dynamic rawData = event.data;
+          Map<String, dynamic>? data;
+          if (rawData is String) {
+            data = jsonDecode(rawData);
+          } else if (rawData is Map) {
+            data = Map<String, dynamic>.from(rawData);
+          }
+
+          if (data != null && data['ban'] != null) {
+            tableName = data['ban']['ten_ban'] ?? data['ban']['ma_ban'] ?? "không rõ";
+          }
+        } catch (e) {}
+        playCallStaffSoundAndNotify(tableName);
+      });
+
+      channel.bind('App\\Events\\StaffCalled').listen((event) {
+        String tableName = "không rõ";
+        try {
+          final dynamic rawData = event.data;
+          Map<String, dynamic>? data;
+          if (rawData is String) {
+            data = jsonDecode(rawData);
+          } else if (rawData is Map) {
+            data = Map<String, dynamic>.from(rawData);
+          }
+
+          if (data != null && data['ban'] != null) {
+            tableName = data['ban']['ten_ban'] ?? data['ban']['ma_ban'] ?? "không rõ";
+          }
+        } catch (e) {}
+        playCallStaffSoundAndNotify(tableName);
+      });
+
+      _pusherClient!.connect();
+    } catch (e) {
+      debugPrint("Pusher Init Error: $e");
+    }
+  }
+
+  void playSoundAndNotify() async {
+    try {
+      if (navigatorKey.currentContext != null) {
+        ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
+          const SnackBar(
+            content: Text('🔔 CÓ ĐƠN HÀNG MỚI TỪ WEB!', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+      await _audioPlayer.play(UrlSource('https://actions.google.com/sounds/v1/alarms/beep_short.ogg'));
+    } catch (e) {
+      debugPrint("Audio play error: $e");
+    }
+  }
+
+  void playCallStaffSoundAndNotify(String tableName) async {
+    try {
+      if (navigatorKey.currentContext != null) {
+        ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.notifications_active, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    '🛎️ BÀN $tableName ĐANG GỌI NHÂN VIÊN!',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.orange.shade800,
+            duration: const Duration(seconds: 10),
+            action: SnackBarAction(
+              label: 'ĐÃ XONG',
+              textColor: Colors.white,
+              onPressed: () {},
+            ),
+          ),
+        );
+      }
+      // Sử dụng âm thanh tiếng chuông (Bell) khác để phân biệt với tiếng đơn hàng
+      await _audioPlayer.play(AssetSource('sounds/uia_sound.mp3'));
+    } catch (e) {
+      debugPrint("Audio play error: $e");
+    }
+  }
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -69,6 +210,7 @@ class OrderViewModel extends ChangeNotifier {
       createdAt: oldOrder.createdAt,
       chiTietDonHangs: oldOrder.chiTietDonHangs,
       ban: oldOrder.ban,
+      ghiChu: oldOrder.ghiChu,
     );
     notifyListeners();
 
@@ -99,6 +241,7 @@ class OrderViewModel extends ChangeNotifier {
       createdAt: oldOrder.createdAt,
       chiTietDonHangs: oldOrder.chiTietDonHangs,
       ban: oldOrder.ban,
+      ghiChu: oldOrder.ghiChu,
     );
     notifyListeners();
 

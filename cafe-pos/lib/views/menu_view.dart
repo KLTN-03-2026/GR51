@@ -22,6 +22,7 @@ class MenuView extends StatefulWidget {
 class _MenuViewState extends State<MenuView> {
   String currentViTri = 'Mang đi'; // State để lưu vị trí/bàn đang chọn
   Ban? selectedBan; // Lưu trữ bàn đang chọn
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -29,6 +30,12 @@ class _MenuViewState extends State<MenuView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<MenuViewModel>().fetchMenuData();
     });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -91,11 +98,25 @@ class _MenuViewState extends State<MenuView> {
                 borderRadius: BorderRadius.circular(24),
               ),
               child: TextField(
+                controller: _searchController,
+                onChanged: (value) {
+                  context.read<MenuViewModel>().setSearchQuery(value);
+                },
                 decoration: InputDecoration(
                   icon: Icon(Icons.search, color: Colors.grey[500]),
                   hintText: 'Tìm kiếm món ăn, đồ uống...',
                   hintStyle: TextStyle(color: Colors.grey[400]),
                   border: InputBorder.none,
+                  suffixIcon: _searchController.text.isNotEmpty 
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () {
+                          _searchController.clear();
+                          context.read<MenuViewModel>().setSearchQuery("");
+                          setState(() {}); // Trigger rebuild to hide suffix icon
+                        },
+                      )
+                    : null,
                 ),
               ),
             ),
@@ -265,8 +286,8 @@ class _MenuViewState extends State<MenuView> {
                   context: context,
                   builder: (context) => ItemOptionsModal(
                     mon: mon,
-                    sizes: menuVM.listSizes,
-                    toppings: menuVM.listToppings,
+                    sizes: mon.sizes ?? [],
+                    toppings: mon.toppings ?? [],
                     onAddToCart: (CartItem newItem) {
                       // Đẩy nguyên giỏ hàng đã có size/topping vào ViewModel
                       context.read<CartViewModel>().addToCart(newItem); 
@@ -669,8 +690,8 @@ class _MenuViewState extends State<MenuView> {
                   context: context,
                   builder: (context) => ItemOptionsModal(
                     mon: item.mon,
-                    sizes: menuVM.listSizes,
-                    toppings: menuVM.listToppings,
+                    sizes: item.mon.sizes ?? [],
+                    toppings: item.mon.toppings ?? [],
                     editingItem: item,
                     onAddToCart: (CartItem updatedItem) {
                       cart.updateCartItem(item, updatedItem);

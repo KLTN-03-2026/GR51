@@ -97,14 +97,26 @@
     <!-- TAB: Công thức -->
     <div v-if="activeTab === 'congthuc'" class="tab-content">
       <div class="toolbar">
-        <h3>Công thức pha chế</h3>
-        <select v-model="selectedMon" class="filter-select" @change="loadCongThuc">
-          <option value="">-- Chọn món --</option>
-          <option v-for="m in mons" :key="m.id" :value="m.id">{{ m.ten_mon }}</option>
-        </select>
+        <h3>Công thức pha chế / Định lượng</h3>
+        <div class="toolbar-actions">
+          <select v-model="congThucType" class="filter-select" @change="resetCongThuc">
+            <option value="mon">Món ăn</option>
+            <option value="topping">Topping</option>
+          </select>
+          
+          <select v-if="congThucType === 'mon'" v-model="selectedMon" class="filter-select" @change="loadCongThuc">
+            <option value="">-- Chọn món --</option>
+            <option v-for="m in mons" :key="m.id" :value="m.id">{{ m.ten_mon }}</option>
+          </select>
+
+          <select v-else v-model="selectedTopping" class="filter-select" @change="loadCongThuc">
+            <option value="">-- Chọn Topping --</option>
+            <option v-for="tp in toppings" :key="tp.id" :value="tp.id">{{ tp.ten_topping }}</option>
+          </select>
+        </div>
       </div>
       <div v-if="congThuc" class="card" style="margin-top:16px">
-        <h4 style="margin-bottom:12px;color:var(--accent)">{{ congThuc.ten_mon }}</h4>
+        <h4 style="margin-bottom:12px;color:var(--accent)">{{ congThuc.ten_mon || congThuc.ten_topping }}</h4>
         <p v-if="congThuc.huong_dan" style="margin-bottom:16px;color:var(--text-secondary);white-space:pre-line">{{ congThuc.huong_dan }}</p>
         <div v-for="(nl, idx) in congThucItems" :key="idx" class="recipe-row">
           <select v-model="nl.nguyen_lieu_id" class="filter-select" style="flex:2">
@@ -131,6 +143,9 @@
               <div v-for="f in modalFields" :key="f.key" class="form-group">
                 <label>{{ f.label }}</label>
                 <select v-if="f.type === 'select'" v-model="modalData[f.key]">
+                  <option v-for="o in f.options" :key="o.value" :value="o.value">{{ o.label }}</option>
+                </select>
+                <select v-else-if="f.type === 'multiselect'" v-model="modalData[f.key]" multiple style="height: 80px;">
                   <option v-for="o in f.options" :key="o.value" :value="o.value">{{ o.label }}</option>
                 </select>
                 <textarea v-else-if="f.type === 'textarea'" v-model="modalData[f.key]" rows="3"></textarea>
@@ -168,7 +183,7 @@ const tabs = [
 const activeTab = ref('danhmuc')
 const danhMucs = ref([]), mons = ref([]), kichCos = ref([]), toppings = ref([]), nguyenLieus = ref([])
 const monSearch = ref(''), monFilter = ref('')
-const selectedMon = ref(''), congThuc = ref(null), congThucItems = ref([])
+const congThucType = ref('mon'), selectedMon = ref(''), selectedTopping = ref(''), congThuc = ref(null), congThucItems = ref([])
 const showModal = ref(false), modalTitle = ref(''), modalFields = ref([]), modalData = ref({}), modalError = ref(''), modalSaving = ref(false)
 let modalSaveFn = null
 
@@ -196,11 +211,13 @@ async function deleteDM(dm) {
 
 function openMon(m) {
   modalTitle.value = m ? 'Sửa món ăn' : 'Thêm món ăn'
-  modalData.value = m ? { ...m } : { ma_mon: '', danh_muc_id: '', ten_mon: '', gia_ban: 0, trang_thai: 1, hinh_anh: '', cong_thuc: '' }
+  modalData.value = m ? { ...m, topping_ids: m.topping_ids || [], size_ids: m.size_ids || [] } : { ma_mon: '', danh_muc_id: '', ten_mon: '', gia_ban: 0, trang_thai: 1, hinh_anh: '', cong_thuc: '', topping_ids: [], size_ids: [] }
   modalFields.value = [
     { key: 'ma_mon', label: 'Mã món', disabled: !!m },{ key: 'ten_mon', label: 'Tên món' },
     { key: 'danh_muc_id', label: 'Danh mục', type: 'select', options: danhMucs.value.map(d => ({ value: d.id, label: d.ten_danh_muc })) },
     { key: 'gia_ban', label: 'Giá bán', type: 'number' },
+    { key: 'topping_ids', label: 'Topping (Giữ Ctrl để chọn)', type: 'multiselect', options: toppings.value.map(t => ({ value: t.id, label: t.ten_topping })) },
+    { key: 'size_ids', label: 'Kích cỡ (Giữ Ctrl để chọn)', type: 'multiselect', options: kichCos.value.map(s => ({ value: s.id, label: s.ten_kich_co })) },
     { key: 'trang_thai', label: 'Trạng thái', type: 'select', options: [{ value: 1, label: 'Đang bán' }, { value: 0, label: 'Ngừng bán' }] },
     { key: 'hinh_anh', label: 'URL Hình ảnh' },{ key: 'cong_thuc', label: 'Hướng dẫn pha chế', type: 'textarea' },
   ]
@@ -246,18 +263,40 @@ async function deleteTP(tp) {
   try { await api.deleteTopping(tp.id); toast.success('Đã xóa!'); await loadToppings() } catch(e) { toast.error(e.response?.data?.message || 'Lỗi') }
 }
 
-async function loadCongThuc() {
-  if (!selectedMon.value) { congThuc.value = null; return }
-  try {
-    const r = await api.getCongThuc(selectedMon.value)
-    congThuc.value = r.data.data
-    congThucItems.value = (r.data.data.nguyen_lieu || []).map(nl => ({ nguyen_lieu_id: nl.id, so_luong_can: nl.so_luong_can }))
-  } catch(e) { toast.error('Lỗi tải công thức') }
+function resetCongThuc() {
+  selectedMon.value = ''
+  selectedTopping.value = ''
+  congThuc.value = null
+  congThucItems.value = []
 }
+
+async function loadCongThuc() {
+  if (congThucType.value === 'mon') {
+    if (!selectedMon.value) { congThuc.value = null; return }
+    try {
+      const r = await api.getCongThuc(selectedMon.value)
+      congThuc.value = r.data.data
+      congThucItems.value = (r.data.data.nguyen_lieu || []).map(nl => ({ nguyen_lieu_id: nl.nguyen_lieu_id, so_luong_can: nl.so_luong_can }))
+    } catch(e) { toast.error('Lỗi tải công thức') }
+  } else {
+    if (!selectedTopping.value) { congThuc.value = null; return }
+    const tp = toppings.value.find(t => t.id === selectedTopping.value)
+    if (tp) {
+      congThuc.value = tp
+      congThucItems.value = (tp.cong_thucs || []).map(ct => ({ nguyen_lieu_id: ct.nguyen_lieu_id, so_luong_can: ct.so_luong_can }))
+    }
+  }
+}
+
 async function saveCongThuc() {
   try {
-    await api.saveCongThuc({ mon_id: selectedMon.value, nguyen_lieu: congThucItems.value.filter(n => n.nguyen_lieu_id) })
-    toast.success('Lưu công thức thành công!')
+    if (congThucType.value === 'mon') {
+      await api.saveCongThuc({ mon_id: selectedMon.value, nguyen_lieu: congThucItems.value.filter(n => n.nguyen_lieu_id) })
+    } else {
+      await api.saveToppingCongThuc(selectedTopping.value, { cong_thuc: congThucItems.value.filter(n => n.nguyen_lieu_id) })
+      await loadToppings() // Refresh data to get new cong_thucs
+    }
+    toast.success('Lưu thành công!')
   } catch(e) { toast.error(e.response?.data?.message || 'Lỗi') }
 }
 

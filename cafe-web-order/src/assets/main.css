@@ -1,6 +1,7 @@
 :root {
   /* Colors */
   --color-primary: #6E4423; /* Warm brown */
+  --color-primary-rgb: 110, 68, 35;
   --color-primary-dark: #4A2D17;
   --color-bg: #FDFBF7; /* Off-white / cream background */
   --color-white: #FFFFFF;
@@ -86,4 +87,10 @@ button {
   position: relative;
   box-shadow: var(--shadow-sm);
   padding-bottom: 80px; /* Space for bottom nav */
+}
+.brand-logo-img {
+  width: 40px; /* Bạn có thể điều chỉnh kích thước này (ví dụ 28px hoặc 48px) cho phù hợp với header */
+  height: auto;
+  object-fit: contain;
+  margin-right: 8px; /* Tạo khoảng cách một chút với phần chữ */
 }

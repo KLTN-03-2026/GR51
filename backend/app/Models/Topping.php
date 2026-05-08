@@ -13,4 +13,14 @@ class Topping extends Model
     {
         return $this->hasMany(ChiTietTopping::class, 'topping_id');
     }
+
+    public function mons()
+    {
+        return $this->belongsToMany(Mon::class, 'mon_topping', 'topping_id', 'mon_id');
+    }
+
+    public function congThucs()
+    {
+        return $this->hasMany(ToppingCongThuc::class, 'topping_id');
+    }
 }

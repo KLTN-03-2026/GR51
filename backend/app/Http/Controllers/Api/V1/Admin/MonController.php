@@ -15,7 +15,7 @@ class MonController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Mon::with('danhMuc');
+        $query = Mon::with(['danhMuc', 'toppings', 'sizes']);
 
         // Filter theo danh mục (Sử dụng ID)
         if ($request->has('danh_muc_id') && $request->danh_muc_id) {
@@ -46,6 +46,8 @@ class MonController extends Controller
                 'gia_ban' => (float) $mon->gia_ban,
                 'cong_thuc' => $mon->cong_thuc,
                 'trang_thai' => (int)$mon->trang_thai,
+                'topping_ids' => $mon->toppings->pluck('id')->toArray(),
+                'size_ids' => $mon->sizes->pluck('id')->toArray(),
             ];
         });
 
@@ -78,6 +80,14 @@ class MonController extends Controller
             'trang_thai' => $request->trang_thai
         ]);
 
+        if ($request->has('topping_ids') && is_array($request->topping_ids)) {
+            $mon->toppings()->sync($request->topping_ids);
+        }
+        if ($request->has('size_ids') && is_array($request->size_ids)) {
+            $mon->sizes()->sync($request->size_ids);
+        }
+        $mon->load(['toppings', 'sizes']);
+
         return response()->json([
             'success' => true,
             'message' => 'Thêm món ăn thành công',
@@ -103,6 +113,14 @@ class MonController extends Controller
         ]);
 
         $mon->update($request->all());
+
+        if ($request->has('topping_ids') && is_array($request->topping_ids)) {
+            $mon->toppings()->sync($request->topping_ids);
+        }
+        if ($request->has('size_ids') && is_array($request->size_ids)) {
+            $mon->sizes()->sync($request->size_ids);
+        }
+        $mon->load(['toppings', 'sizes']);
 
         return response()->json([
             'success' => true,

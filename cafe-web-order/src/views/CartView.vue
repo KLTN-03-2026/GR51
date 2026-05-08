@@ -45,23 +45,6 @@ const submitReview = async (order) => {
   } finally { rs.submitting = false }
 }
 
-const cancellingOrder = ref(null)
-const canCancelOrder = (order) => {
-  if (order.trang_thai_don !== 0) return false
-  const createdAt = new Date(order.created_at_local || order.created_at)
-  return (new Date() - createdAt) <= 2 * 60 * 1000
-}
-
-const cancelOrder = async (order) => {
-  if (!await toast.confirm('Bạn muốn huỷ đơn này?')) return
-  cancellingOrder.value = order.id
-  try {
-    const res = await api.cancelOrderQr(order.id)
-    if (res.data.success) { order.trang_thai_don = 3; toast.success('Đã huỷ đơn!') }
-  } catch (error) { toast.error("Không thể huỷ đơn lúc này.") }
-  finally { cancellingOrder.value = null }
-}
-
 let pollingInterval = null
 onMounted(() => {
   pollingInterval = setInterval(async () => {
@@ -127,9 +110,6 @@ onUnmounted(() => { if (pollingInterval) clearInterval(pollingInterval) })
            <p class="qr-desc">Vui lòng quét mã để thanh toán.</p>
         </div>
 
-        <div v-if="canCancelOrder(order)" class="cancel-section">
-          <button class="cancel-btn" @click="cancelOrder(order)" :disabled="cancellingOrder === order.id">Huỷ đơn hàng</button>
-        </div>
       </div>
       <button class="outline-btn mt-6" @click="emit('back')">Tiếp tục đặt món</button>
     </div>
@@ -150,7 +130,14 @@ onUnmounted(() => { if (pollingInterval) clearInterval(pollingInterval) })
 .qr-image { width: 180px; height: 180px; margin: 0 auto; }
 .primary-btn { width: 100%; background: var(--color-primary); color: #fff; padding: 14px; border-radius: 12px; font-weight: 600; }
 .outline-btn { width: 100%; border: 2px solid var(--color-primary); color: var(--color-primary); padding: 14px; border-radius: 12px; font-weight: 600; }
-.stars { display: flex; justify-content: center; gap: 8px; margin: 10px 0; font-size: 24px; }
-.star.active { color: var(--color-primary); }
-.cancel-btn { width: 100%; border: 1px solid #ff4d4f; color: #ff4d4f; padding: 10px; border-radius: 10px; background: #fff; margin-top: 10px; }
+.review-box { text-align: center; padding: 20px 0; margin-bottom: 15px; }
+.review-prompt { font-weight: 700; font-size: 17px; color: #333; margin-bottom: 8px; }
+.stars { display: flex; justify-content: center; gap: 16px; margin: 15px 0 24px 0; font-size: 36px; }
+.star { cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); filter: grayscale(1) opacity(0.3); transform: scale(1); display: inline-block; user-select: none; -webkit-tap-highlight-color: transparent; }
+.star:hover { transform: scale(1.2); filter: grayscale(0) opacity(0.7); }
+.star.active { filter: grayscale(0) opacity(1); transform: scale(1.25); }
+.review-form-expand { display: flex; flex-direction: column; gap: 12px; }
+.review-input { width: 100%; padding: 16px; border: 1.5px solid #eaeaea; border-radius: 14px; font-family: inherit; font-size: 15px; resize: none; outline: none; transition: all 0.2s; background: #fafafa; color: #333; box-sizing: border-box; }
+.review-input:focus { border-color: var(--color-primary); background: #fff; box-shadow: 0 0 0 4px rgba(110, 68, 35, 0.08); }
+.review-input::placeholder { color: #aaa; }
 </style>

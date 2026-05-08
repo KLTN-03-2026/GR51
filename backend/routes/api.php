@@ -22,6 +22,7 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::get('/v1/menu', [\App\Http\Controllers\Api\V1\MenuController::class, 'index']);
 Route::get('/v1/tables', [\App\Http\Controllers\Api\V1\TableController::class, 'index']);
 Route::get('/v1/tables/{ma_ban}', [\App\Http\Controllers\Api\V1\TableController::class, 'show']); // Added for web order
+Route::post('/v1/tables/{ma_ban}/call-staff', [\App\Http\Controllers\Api\V1\TableController::class, 'callStaff']);
 Route::get('/v1/mon-an/{ma_mon}/cong-thuc', [\App\Http\Controllers\Api\V1\MonController::class, 'getCongThuc']);
 Route::get('/v1/kho/ton-kho', [\App\Http\Controllers\Api\V1\KhoController::class, 'getTonKho']);
 
@@ -38,6 +39,11 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('v1/admin')->group(function
 
     // Dashboard thống kê
     Route::get('/dashboard', [\App\Http\Controllers\Api\V1\Admin\DashboardController::class, 'index']);
+
+    // Báo cáo & Thống kê
+    Route::get('/reports/revenue', [\App\Http\Controllers\Api\V1\Admin\ThongKeController::class, 'revenue']);
+    Route::get('/reports/best-sellers', [\App\Http\Controllers\Api\V1\Admin\ThongKeController::class, 'bestSellers']);
+    Route::get('/reports/orders-overview', [\App\Http\Controllers\Api\V1\Admin\ThongKeController::class, 'ordersOverview']);
 
     // Quản lý Danh mục
     Route::get('/danh-muc', [\App\Http\Controllers\Api\V1\Admin\DanhMucController::class, 'index']);
@@ -62,6 +68,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('v1/admin')->group(function
     Route::post('/topping', [\App\Http\Controllers\Api\V1\Admin\ToppingController::class, 'store']);
     Route::put('/topping/{id}', [\App\Http\Controllers\Api\V1\Admin\ToppingController::class, 'update']);
     Route::delete('/topping/{id}', [\App\Http\Controllers\Api\V1\Admin\ToppingController::class, 'destroy']);
+    Route::post('/topping/{id}/cong-thuc', [\App\Http\Controllers\Api\V1\Admin\ToppingController::class, 'saveCongThuc']);
 
     // Quản lý Công thức
     Route::get('/cong-thuc/{maMon}', [\App\Http\Controllers\Api\V1\Admin\CongThucController::class, 'show']);

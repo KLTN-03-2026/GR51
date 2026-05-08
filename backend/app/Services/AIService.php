@@ -53,11 +53,9 @@ class AIService
             ];
 
             $models = [
-                ['name' => 'gemini-1.5-flash-latest', 'ver' => 'v1beta'],
-                ['name' => 'gemini-1.5-pro-latest', 'ver' => 'v1beta'],
-                ['name' => 'gemini-1.5-flash', 'ver' => 'v1beta'],
-                ['name' => 'gemini-1.0-pro', 'ver' => 'v1beta'],
+                ['name' => 'gemini-1.5-flash', 'ver' => 'v1'],
                 ['name' => 'gemini-2.0-flash', 'ver' => 'v1beta'],
+                ['name' => 'gemini-1.5-pro', 'ver' => 'v1'],
             ];
             $reply = null;
 
@@ -74,18 +72,10 @@ class AIService
                     ]
                 ];
 
-                // All models here use v1beta, but let's be robust
-                if ($apiVersion === 'v1beta') {
-                    $payload['system_instruction'] = [
-                        'parts' => [['text' => $systemPrompt]]
-                    ];
-                } else {
-                    // Fallback for v1 (not expected here but for safety)
-                    array_unshift($payload['contents'], [
-                        'role' => 'user',
-                        'parts' => [['text' => "SYSTEM INSTRUCTION: " . $systemPrompt]]
-                    ]);
-                }
+                // Cấu hình system instruction
+                $payload['systemInstruction'] = [
+                    'parts' => [['text' => $systemPrompt]]
+                ];
                 
                 $response = Http::timeout(30)->post(
                     "https://generativelanguage.googleapis.com/{$apiVersion}/models/{$modelName}:generateContent?key={$this->apiKey}",
@@ -95,12 +85,13 @@ class AIService
                 if ($response->successful()) {
                     $data = $response->json();
                     $reply = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
-                    break;
+                    if ($reply) break;
                 }
 
-                Log::warning("AIService model {$modelName} ({$apiVersion}) failed. Status: " . $response->status() . " Body: " . $response->body());
+                Log::warning("AIService model {$modelName} ({$apiVersion}) failed. Status: " . $response->status() . " Response: " . $response->body());
 
                 if ($response->status() === 429) {
+                    // Nếu bị giới hạn rate limit, đợi 1 chút rồi thử model khác hoặc retry
                     sleep(1);
                     continue;
                 }
