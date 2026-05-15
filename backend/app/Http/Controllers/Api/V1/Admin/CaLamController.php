@@ -67,6 +67,7 @@ class CaLamController extends Controller
                         'tong_doanh_thu' => $cl->trang_thai == 0 ? (float)$cl->tong_doanh_thu : $tongDoanhThu,
                         'tien_mat_dau_ca' => (float)$cl->tien_mat_dau_ca,
                         'tien_mat_he_thong' => (float)$cl->tien_mat_he_thong,
+                        'ghi_chu' => $cl->ghi_chu,
                         'trang_thai' => (int)$cl->trang_thai,
                         'thong_ke' => [
                             'tong_so_don' => $tongDon,

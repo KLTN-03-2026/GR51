@@ -104,7 +104,7 @@ class NhanSuController extends Controller
             'trang_thai' => 'sometimes|required|integer',
         ]);
 
-        $nhanSu->update($request->all());
+        $nhanSu->update($request->only(['ho_ten', 'so_dien_thoai', 'vai_tro', 'trang_thai']));
 
         return response()->json([
             'success' => true,

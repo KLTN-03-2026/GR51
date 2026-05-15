@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class KichCo extends Model
 {
+    use SoftDeletes;
+
     protected $table = 'kich_cos';
     protected $fillable = ['ma_kich_co', 'ten_kich_co', 'gia_cong_them'];
 

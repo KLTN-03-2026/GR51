@@ -26,7 +26,10 @@
             <td>{{ nl.don_vi_tinh }}</td><td>{{ nl.muc_canh_bao }}</td>
             <td><span :class="'badge badge-' + (nl.tinh_trang_kho === 'het_hang' ? 'error' : nl.tinh_trang_kho === 'sap_het' ? 'warning' : 'success')">{{ nl.tinh_trang_kho === 'het_hang' ? 'Hết hàng' : nl.tinh_trang_kho === 'sap_het' ? 'Sắp hết' : 'Còn hàng' }}</span></td>
             <td class="action-cell">
-              <button class="btn btn-primary btn-sm" @click="openNhapKho(nl)">📥 Nhập</button>
+              <button class="btn btn-primary btn-sm" @click="openNhapKho(nl)" title="Nhập kho">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px; display:inline-block; vertical-align:middle"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Nhập
+              </button>
               <button class="btn btn-ghost btn-sm" @click="openForm(nl)">Sửa</button>
               <button class="btn btn-danger btn-sm" @click="del(nl)">Xóa</button>
             </td>
@@ -71,7 +74,6 @@
             <div class="form-group"><label>Trạng thái</label><select v-model="form.trang_thai"><option :value="1">Hoạt động</option><option :value="0">Ngừng</option></select></div>
           </div>
         </div>
-        <div v-if="formErr" class="error-msg">{{ formErr }}</div>
         <div class="modal-actions"><button class="btn btn-ghost" @click="showModal = false">Hủy</button><button class="btn btn-primary" @click="save">Lưu</button></div>
       </div>
     </div>
@@ -80,7 +82,10 @@
     <Teleport to="body">
     <div v-if="showNhapKho" class="modal-overlay" @click.self="showNhapKho = false">
       <div class="modal-box card" style="max-width:400px">
-        <h3>📥 Nhập kho: {{ nhapKhoItem?.ten_nguyen_lieu }}</h3>
+        <h3>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline; vertical-align:middle; margin-right:8px; color:var(--accent)"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Nhập kho: {{ nhapKhoItem?.ten_nguyen_lieu }}
+        </h3>
         <div class="modal-form"><div class="form-group"><label>Số lượng nhập</label><input v-model.number="nhapSoLuong" type="number" min="0.01" step="0.01" /></div></div>
         <div class="modal-actions"><button class="btn btn-ghost" @click="showNhapKho = false">Hủy</button><button class="btn btn-primary" @click="nhapKho">Nhập kho</button></div>
       </div>
@@ -116,12 +121,12 @@ async function save() {
     if (editing.value) await api.updateNguyenLieu(form.value.id, form.value)
     else await api.createNguyenLieu(form.value)
     showModal.value = false; toast.success(editing.value ? 'Cập nhật thành công!' : 'Thêm thành công!'); await load()
-  } catch(e) { formErr.value = e.response?.data?.message || 'Lỗi' }
+  } catch(e) { toast.error(e.response?.data?.message || 'Có lỗi xảy ra. Vui lòng kiểm tra lại kết nối hoặc dữ liệu.') }
 }
 async function del(nl) {
   const ok = await confirm(`Bạn có chắc muốn xóa "${nl.ten_nguyen_lieu}"?`, 'Xóa nguyên liệu')
   if (!ok) return
-  try { await api.deleteNguyenLieu(nl.id); toast.success('Đã xóa!'); await load() } catch(e) { toast.error(e.response?.data?.message || 'Lỗi') }
+  try { await api.deleteNguyenLieu(nl.id); toast.success('Đã xóa!'); await load() } catch(e) { toast.error(e.response?.data?.message || 'Không thể xóa nguyên liệu này.') }
 }
 function openNhapKho(nl) { nhapKhoItem.value = nl; nhapSoLuong.value = 0; showNhapKho.value = true }
 async function nhapKho() {
@@ -129,7 +134,7 @@ async function nhapKho() {
   try {
     await api.nhapKho(nhapKhoItem.value.id, { so_luong: nhapSoLuong.value })
     showNhapKho.value = false; toast.success('Nhập kho thành công!'); await load()
-  } catch(e) { toast.error(e.response?.data?.message || 'Lỗi') }
+  } catch(e) { toast.error(e.response?.data?.message || 'Có lỗi xảy ra. Vui lòng kiểm tra lại kết nối hoặc dữ liệu.') }
 }
 onMounted(load)
 </script>

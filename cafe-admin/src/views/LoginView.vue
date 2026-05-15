@@ -31,7 +31,6 @@
           />
         </div>
 
-        <div v-if="error" class="error-msg">{{ error }}</div>
 
         <button type="submit" class="btn btn-primary login-btn" :disabled="loading">
           <span v-if="loading" class="spinner"></span>
@@ -46,9 +45,11 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast'
 
 const auth = useAuthStore()
 const router = useRouter()
+const toast = useToast()
 
 const username = ref('')
 const password = ref('')
@@ -57,7 +58,7 @@ const error = ref('')
 
 async function handleLogin() {
   if (!username.value || !password.value) {
-    error.value = 'Vui lòng nhập đầy đủ thông tin'
+    toast.error('Vui lòng nhập đầy đủ thông tin')
     return
   }
 
@@ -68,7 +69,13 @@ async function handleLogin() {
     await auth.login(username.value, password.value)
     router.push('/')
   } catch (e) {
-    error.value = e.response?.data?.message || e.message || 'Đăng nhập thất bại'
+    if (e.response?.status === 401) {
+      toast.error('Tên đăng nhập hoặc mật khẩu không chính xác')
+    } else if (e.response?.status === 403) {
+      toast.error('Tài khoản của bạn đã bị khóa hoặc ngưng hoạt động')
+    } else {
+      toast.error(e.response?.data?.message || e.message || 'Đăng nhập thất bại. Vui lòng thử lại.')
+    }
   } finally {
     loading.value = false
   }

@@ -3,6 +3,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../services/api_service.dart';
 import '../models/khu_vuc_model.dart';
 import 'dart:html' as html;
+import '../utils/toast_utils.dart';
 
 class TableQrView extends StatefulWidget {
   const TableQrView({super.key});
@@ -18,7 +19,7 @@ class _TableQrViewState extends State<TableQrView> {
   List<KhuVuc> _khuVucs = [];
 
   // Default IP config text controller for development
-  final TextEditingController _domainController = TextEditingController(text: 'http://192.168.11.247:5173');
+  final TextEditingController _domainController = TextEditingController(text: 'http://127.0.0.1:5173');
 
   @override
   void initState() {
@@ -97,10 +98,9 @@ class _TableQrViewState extends State<TableQrView> {
                       label: const Text('In (Bấm Ctrl + P)'),
                       style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6E4423), foregroundColor: Colors.white),
                       onPressed: () {
-                        // Hint user to press Ctrl+P
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Hãy nhấn Ctrl + P trên trình duyệt Windows để in bảng này.')),
-                        );
+                        if (context.mounted) {
+                          ToastUtils.showInfo(context, 'Hãy nhấn Ctrl + P trên trình duyệt Windows để in bảng này.');
+                        }
                       },
                     )
                   ],
@@ -118,7 +118,7 @@ class _TableQrViewState extends State<TableQrView> {
     return Scaffold(
       backgroundColor: const Color(0xFFFDFBF7),
       appBar: AppBar(
-        title: const Text('Quản Lý Mã QR Bàn', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+        title: const Text('In Mã QR Bàn', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
         backgroundColor: Colors.white,
         elevation: 0,
         actions: [
@@ -130,44 +130,7 @@ class _TableQrViewState extends State<TableQrView> {
           const SizedBox(width: 8),
         ],
       ),
-      body: Column(
-        children: [
-          _buildSettingsBar(),
-          Expanded(child: _buildBody()),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSettingsBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      color: Colors.white,
-      child: Row(
-        children: [
-          const Icon(Icons.link, color: Colors.grey),
-          const SizedBox(width: 12),
-          const Text('Tên miền hệ thống Web:', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(width: 16),
-          Expanded(
-            child: TextField(
-              controller: _domainController,
-              decoration: const InputDecoration(
-                isDense: true,
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                hintText: 'VD: http://192.168.1.5:5173',
-              ),
-              onChanged: (_) => setState(() {}),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Text(
-            'Đổi theo IP LAN để test bằng điện thoại',
-            style: TextStyle(color: Colors.grey[500], fontSize: 13, fontStyle: FontStyle.italic),
-          )
-        ],
-      ),
+      body: _buildBody(),
     );
   }
 

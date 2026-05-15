@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'viewmodels/auth_viewmodel.dart';
 import 'viewmodels/cart_viewmodel.dart';
+import '../utils/currency_formatter.dart';
+import 'package:flutter/services.dart';
+import '../utils/toast_utils.dart';
 
 class AccountView extends StatefulWidget {
   const AccountView({Key? key}) : super(key: key);
@@ -282,6 +285,9 @@ class _AccountViewState extends State<AccountView> {
             TextField(
               controller: cashController,
               keyboardType: TextInputType.number,
+              inputFormatters: [
+                CurrencyInputFormatter(),
+              ],
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               decoration: InputDecoration(
                 labelText: 'Tiền mặt đầu ca',
@@ -322,13 +328,14 @@ class _AccountViewState extends State<AccountView> {
                 label: const Text('Bắt Đầu Ca', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[600], padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
                 onPressed: () async {
-                  double startingCash = double.tryParse(cashController.text) ?? 0;
+                  String plainText = cashController.text.replaceAll(RegExp(r'[^0-9]'), '');
+                  double startingCash = double.tryParse(plainText) ?? 0;
                   Navigator.pop(ctx);
                   bool success = await viewModel.openShift(startingCash);
                   if (success && context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã mở ca thành công! Chúc bạn buôn bán đắt khách! 🎉'), backgroundColor: Colors.green));
+                    ToastUtils.showSuccess(context, 'Đã mở ca thành công! Chúc bạn buôn bán đắt khách! 🎉');
                   } else if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lỗi khi mở ca. Vui lòng thử lại!'), backgroundColor: Colors.red));
+                    ToastUtils.showError(context, 'Lỗi khi mở ca. Vui lòng thử lại!');
                   }
                 },
               ),
@@ -342,7 +349,10 @@ class _AccountViewState extends State<AccountView> {
   Widget _quickCashChip(String label, double value, TextEditingController controller) {
     return Expanded(
       child: OutlinedButton(
-        onPressed: () => controller.text = value.toInt().toString(),
+        onPressed: () {
+          final formatter = NumberFormat('#,###', 'vi_VN');
+          controller.text = formatter.format(value);
+        },
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 8),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -372,7 +382,8 @@ class _AccountViewState extends State<AccountView> {
       barrierDismissible: false,
       builder: (ctx) {
         return StatefulBuilder(builder: (ctx, setDialogState) {
-          double tienThucTe = double.tryParse(cashController.text) ?? 0;
+          String plainText = cashController.text.replaceAll(RegExp(r'[^0-9]'), '');
+          double tienThucTe = double.tryParse(plainText) ?? 0;
           double chenhLech = tienThucTe - tienMatHeThong;
           bool isMatched = chenhLech == 0 && cashController.text.isNotEmpty;
           bool hasInput = cashController.text.isNotEmpty;
@@ -421,8 +432,13 @@ class _AccountViewState extends State<AccountView> {
                   TextField(
                     controller: cashController,
                     keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      CurrencyInputFormatter(),
+                    ],
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    onChanged: (_) => setDialogState(() {}),
+                    onChanged: (value) {
+                      // Không cần setDialogState nữa vì ValueListenableBuilder đã lo việc này
+                    },
                     decoration: InputDecoration(
                       labelText: 'Tiền mặt thực tế trong két',
                       suffixText: 'VNĐ',
@@ -431,27 +447,42 @@ class _AccountViewState extends State<AccountView> {
                       filled: true, fillColor: Colors.white,
                     ),
                   ),
-                  if (hasInput) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: isMatched ? Colors.green[50] : Colors.red[50],
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: isMatched ? Colors.green[300]! : Colors.red[300]!),
-                      ),
-                      child: Row(children: [
-                        Icon(isMatched ? Icons.check_circle : Icons.warning_amber_rounded, color: isMatched ? Colors.green : Colors.red, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(
-                          isMatched
-                              ? 'Tiền mặt khớp với hệ thống! ✓'
-                              : 'Chênh lệch: ${chenhLech > 0 ? "+" : ""}${_formatCurrency(chenhLech)}',
-                          style: TextStyle(color: isMatched ? Colors.green[700] : Colors.red[700], fontWeight: FontWeight.w600, fontSize: 13),
-                        )),
-                      ]),
-                    ),
-                  ],
+                  ValueListenableBuilder(
+                    valueListenable: cashController,
+                    builder: (context, value, child) {
+                      String text = cashController.text;
+                      if (text.isEmpty) return const SizedBox.shrink();
+                      
+                      String plain = text.replaceAll(RegExp(r'[^0-9]'), '');
+                      double actual = double.tryParse(plain) ?? 0;
+                      double diff = actual - tienMatHeThong;
+                      bool matched = diff == 0;
+
+                      return Column(
+                        children: [
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: matched ? Colors.green[50] : Colors.red[50],
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: matched ? Colors.green[300]! : Colors.red[300]!),
+                            ),
+                            child: Row(children: [
+                              Icon(matched ? Icons.check_circle : Icons.warning_amber_rounded, color: matched ? Colors.green : Colors.red, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text(
+                                matched
+                                    ? 'Tiền mặt khớp với hệ thống! ✓'
+                                    : 'Chênh lệch: ${diff > 0 ? "+" : ""}${_formatCurrency(diff)}',
+                                style: TextStyle(color: matched ? Colors.green[700] : Colors.red[700], fontWeight: FontWeight.w600, fontSize: 13),
+                              )),
+                            ]),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: noteController,
@@ -485,21 +516,22 @@ class _AccountViewState extends State<AccountView> {
                     style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF03E3E), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
                     onPressed: () async {
                       if (cashController.text.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng nhập tiền mặt thực tế!'), backgroundColor: const Color(0xFF6E4423)));
+                        ToastUtils.showWarning(context, 'Vui lòng nhập tiền mặt thực tế!');
                         return;
                       }
                       Navigator.pop(ctx);
+                      String plainText = cashController.text.replaceAll(RegExp(r'[^0-9]'), '');
                       final result = await viewModel.closeShift(
-                        tienMatThucTe: double.tryParse(cashController.text) ?? 0,
+                        tienMatThucTe: double.tryParse(plainText) ?? 0,
                         ghiChu: noteController.text.isNotEmpty ? noteController.text : null,
                       );
                       if (context.mounted) {
                         if (result['success'] == true) {
                           // Clear giỏ hàng khi kết ca thành công
                           context.read<CartViewModel>().clearCart();
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result['message']), backgroundColor: Colors.green));
+                          ToastUtils.showSuccess(context, result['message']);
                         } else {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result['message'] ?? 'Lỗi kết ca'), backgroundColor: Colors.red, duration: const Duration(seconds: 4)));
+                          ToastUtils.showError(context, result['message'] ?? 'Lỗi kết ca');
                         }
                       }
                     },

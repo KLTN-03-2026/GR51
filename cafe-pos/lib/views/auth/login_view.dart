@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../viewmodels/auth_viewmodel.dart';
 import '../main_layout.dart';
+import '../../utils/toast_utils.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({Key? key}) : super(key: key);
@@ -36,6 +37,9 @@ class _LoginViewState extends State<LoginView> {
           context,
           MaterialPageRoute(builder: (_) => const MainLayout()),
         );
+      } else if (mounted) {
+        final error = authViewModel.errorMessage ?? 'Đăng nhập thất bại';
+        ToastUtils.showError(context, error);
       }
     }
   }
@@ -83,22 +87,6 @@ class _LoginViewState extends State<LoginView> {
                     style: TextStyle(color: Colors.grey),
                   ),
                   const SizedBox(height: 40),
-                  
-                  Consumer<AuthViewModel>(
-                    builder: (context, auth, _) {
-                      if (auth.errorMessage != null && auth.errorMessage!.isNotEmpty) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: Text(
-                            auth.errorMessage!,
-                            style: const TextStyle(color: Colors.red, fontSize: 13),
-                            textAlign: TextAlign.center,
-                          ),
-                        );
-                      }
-                      return const SizedBox();
-                    },
-                  ),
 
                   TextFormField(
                     controller: _usernameController,

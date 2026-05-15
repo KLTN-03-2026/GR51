@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Mon extends Model
 {
+    use SoftDeletes;
+
     protected $table = 'mons';
-    protected $fillable = ['ma_mon', 'danh_muc_id', 'ten_mon', 'hinh_anh', 'gia_ban', 'cong_thuc', 'trang_thai'];
+    protected $fillable = ['ma_mon', 'danh_muc_id', 'ten_mon', 'hinh_anh', 'gia_ban', 'trang_thai'];
 
     public function danhMuc()
     {
@@ -31,6 +34,7 @@ class Mon extends Model
 
     public function sizes()
     {
-        return $this->belongsToMany(KichCo::class, 'mon_kich_co', 'mon_id', 'kich_co_id');
+        return $this->belongsToMany(KichCo::class, 'mon_kich_co', 'mon_id', 'kich_co_id')
+                    ->withPivot('gia_cong_them');
     }
 }

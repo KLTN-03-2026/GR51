@@ -24,4 +24,9 @@ class CaLam extends Model
     {
         return $this->belongsTo(NhanSu::class, 'nhan_su_id');
     }
+
+    public function donHangs()
+    {
+        return $this->hasMany(DonHang::class, 'ca_lam_id');
+    }
 }

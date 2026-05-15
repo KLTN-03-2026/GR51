@@ -5,6 +5,7 @@ import 'dart:async';
 import '../viewmodels/order_viewmodel.dart';
 import '../../models/order_model.dart';
 import '../../services/api_service.dart';
+import '../../utils/toast_utils.dart';
 
 class OrderListView extends StatefulWidget {
   const OrderListView({super.key});
@@ -290,7 +291,7 @@ class SmartOrderCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'ĐH #${order.maDonHang.substring(0, order.maDonHang.length > 8 ? 8 : order.maDonHang.length).toUpperCase()}',
+              'ĐH #${order.maDonHang.length > 5 ? order.maDonHang.substring(order.maDonHang.length - 5) : order.maDonHang.toUpperCase()}',
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, fontFamily: 'monospace', color: Colors.black87),
             ),
             OrderTimer(createdAt: order.createdAt),
@@ -377,16 +378,11 @@ class SmartOrderCard extends StatelessWidget {
               final success = await viewModel.completePreparation(order.id);
               
               if (success && context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      isPaid ? 'Đơn hàng đã hoàn tất và được lưu vào Lịch sử' : 'Đã pha xong. Đơn chờ thu tiền tại mục Chờ thanh toán',
-                      style: const TextStyle(fontWeight: FontWeight.bold)
-                    ),
-                    backgroundColor: isPaid ? Colors.green : const Color(0xFF6E4423),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
+                if (isPaid) {
+                  ToastUtils.showSuccess(context, 'Đơn hàng đã hoàn tất và được lưu vào Lịch sử');
+                } else {
+                  ToastUtils.showInfo(context, 'Đã pha xong. Đơn chờ thu tiền tại mục Chờ thanh toán');
+                }
               }
             },
             style: ElevatedButton.styleFrom(
@@ -426,16 +422,7 @@ class SmartOrderCard extends StatelessWidget {
             onPressed: () async {
               final success = await viewModel.confirmPayment(order.id);
               if (success && context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Thanh toán thành công! Đơn hàng đã được chuyển vào Lịch sử.',
-                      style: TextStyle(fontWeight: FontWeight.bold)
-                    ),
-                    backgroundColor: Colors.green,
-                    duration: Duration(seconds: 2),
-                  ),
-                );
+                ToastUtils.showSuccess(context, 'Thanh toán thành công! Đơn hàng đã được chuyển vào Lịch sử.');
               }
             },
             style: ElevatedButton.styleFrom(
@@ -494,7 +481,9 @@ class SmartOrderCard extends StatelessWidget {
                 Expanded(child: Text(
                   order.trangThaiDon == 2
                     ? 'Đơn này đã pha chế xong. Nguyên liệu sẽ không được hoàn trả về kho.'
-                    : 'Đơn này đang pha chế. Huỷ sẽ không ảnh hưởng tồn kho.',
+                    : (order.trangThaiDon == 1 
+                        ? 'Đơn này đang pha chế. Huỷ sẽ không ảnh hưởng tồn kho.'
+                        : 'Đơn này mới khởi tạo (chưa pha). Huỷ sẽ không ảnh hưởng tồn kho.'),
                   style: const TextStyle(fontSize: 13, color: Colors.black87),
                 )),
               ]),
@@ -539,25 +528,19 @@ class SmartOrderCard extends StatelessWidget {
                 ),
                 onPressed: () async {
                   if (reasonController.text.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Vui lòng nhập lý do huỷ đơn!'), backgroundColor: const Color(0xFF6E4423)),
-                    );
+                    ToastUtils.showWarning(context, 'Vui lòng nhập lý do huỷ đơn!');
                     return;
                   }
                   Navigator.pop(ctx);
                   final result = await viewModel.cancelOrder(order.id, reasonController.text.trim());
                   if (context.mounted) {
                     final success = result['success'] == true;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          success ? (result['message'] ?? 'Huỷ đơn thành công') : (result['message'] ?? 'Lỗi huỷ đơn'),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        backgroundColor: success ? Colors.green : Colors.red,
-                        duration: const Duration(seconds: 3),
-                      ),
-                    );
+                    final msg = success ? (result['message'] ?? 'Huỷ đơn thành công') : (result['message'] ?? 'Lỗi huỷ đơn');
+                    if (success) {
+                      ToastUtils.showSuccess(context, msg);
+                    } else {
+                      ToastUtils.showError(context, msg);
+                    }
                   }
                 },
               ),

@@ -3,7 +3,7 @@ class Ban {
   final String maBan;
   final String tenBan;
   final int khuVucId;
-  final int trangThai; // 0: trong, 1: dang_phuc_vu
+  final int trangThai; // 1: trong, 2: dang_phuc_vu, 0: bao_tri
   final int? soChoNgoi;
 
   Ban({

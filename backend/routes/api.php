@@ -32,6 +32,9 @@ Route::get('/v1/don-hang/qr/{maDonHang}', [\App\Http\Controllers\Api\V1\DonHangC
 Route::post('/v1/danh-gia/qr', [\App\Http\Controllers\Api\V1\DanhGiaController::class, 'storeQr']);
 Route::put('/v1/don-hang/qr/{maDonHang}/huy', [\App\Http\Controllers\Api\V1\DonHangController::class, 'cancelOrderQr']);
 
+// Payment Webhooks
+Route::post('/v1/webhooks/payos', [\App\Http\Controllers\Api\V1\PaymentWebhookController::class, 'handlePayOS']);
+
 // ============================================================
 // ADMIN ROUTES - Yêu cầu đăng nhập + vai trò quản lý
 // ============================================================

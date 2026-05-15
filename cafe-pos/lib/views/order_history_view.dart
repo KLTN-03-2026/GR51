@@ -184,7 +184,7 @@ class _OrderHistoryViewState extends State<OrderHistoryView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Chi tiết Đơn hàng: #${order.maDonHang.substring(0, order.maDonHang.length > 8 ? 8 : order.maDonHang.length).toUpperCase()}', style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text('Chi tiết Đơn hàng: #${order.maDonHang.length > 5 ? order.maDonHang.substring(order.maDonHang.length - 5) : order.maDonHang.toUpperCase()}', style: const TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
@@ -287,7 +287,7 @@ class _OrderHistoryViewState extends State<OrderHistoryView> {
       } catch (_) {}
     }
 
-    final String shortId = order.maDonHang.substring(0, order.maDonHang.length > 8 ? 8 : order.maDonHang.length).toUpperCase();
+    final String shortId = order.maDonHang.length > 5 ? order.maDonHang.substring(order.maDonHang.length - 5) : order.maDonHang.toUpperCase();
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),

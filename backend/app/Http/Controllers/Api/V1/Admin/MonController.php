@@ -44,7 +44,6 @@ class MonController extends Controller
                 'ten_mon' => $mon->ten_mon,
                 'hinh_anh' => $mon->hinh_anh,
                 'gia_ban' => (float) $mon->gia_ban,
-                'cong_thuc' => $mon->cong_thuc,
                 'trang_thai' => (int)$mon->trang_thai,
                 'topping_ids' => $mon->toppings->pluck('id')->toArray(),
                 'size_ids' => $mon->sizes->pluck('id')->toArray(),
@@ -76,7 +75,6 @@ class MonController extends Controller
             'ten_mon' => $request->ten_mon,
             'hinh_anh' => $request->hinh_anh,
             'gia_ban' => $request->gia_ban,
-            'cong_thuc' => $request->cong_thuc,
             'trang_thai' => $request->trang_thai
         ]);
 
@@ -112,7 +110,7 @@ class MonController extends Controller
             'trang_thai' => 'sometimes|required|integer',
         ]);
 
-        $mon->update($request->all());
+        $mon->update($request->only(['danh_muc_id', 'ten_mon', 'hinh_anh', 'gia_ban', 'trang_thai']));
 
         if ($request->has('topping_ids') && is_array($request->topping_ids)) {
             $mon->toppings()->sync($request->topping_ids);

@@ -20,7 +20,9 @@
         <td><span :class="ns.trang_thai === 1 ? 'badge badge-success' : 'badge badge-error'">{{ ns.trang_thai === 1 ? 'Hoạt động' : 'Khóa' }}</span></td>
         <td class="action-cell">
           <button class="btn btn-ghost btn-sm" @click="openForm(ns)">Sửa</button>
-          <button class="btn btn-secondary btn-sm" @click="openReset(ns)">🔑</button>
+          <button class="btn btn-secondary btn-sm" @click="openReset(ns)" title="Đặt lại mật khẩu">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3L15.5 7.5z"></path></svg>
+          </button>
           <button class="btn btn-danger btn-sm" @click="del(ns)">Xóa</button>
         </td>
       </tr></tbody>
@@ -45,7 +47,6 @@
               </template>
             </div>
           </div>
-          <div v-if="formErr" class="error-msg">{{ formErr }}</div>
           <div class="modal-actions">
             <button class="btn btn-ghost" @click="showModal=false">Hủy</button>
             <button class="btn btn-primary" @click="save" :disabled="saving">{{ saving ? 'Đang lưu...' : 'Lưu' }}</button>
@@ -58,7 +59,10 @@
     <Teleport to="body">
       <div v-if="showReset" class="modal-overlay" @click.self="showReset=false">
         <div class="modal-box card" style="max-width:400px">
-          <h3>🔑 Đặt lại mật khẩu</h3>
+          <h3>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline; vertical-align:middle; margin-right:8px; color:var(--coffee-accent)"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3L15.5 7.5z"></path></svg>
+            Đặt lại mật khẩu
+          </h3>
           <p style="color:var(--text-secondary);margin-bottom:16px">Nhân viên: <strong style="color:var(--text-primary)">{{ resetUser?.ho_ten }}</strong></p>
           <div class="modal-form"><div class="form-group"><label>Mật khẩu mới</label><input v-model="newPw" type="password" /></div></div>
           <div class="modal-actions"><button class="btn btn-ghost" @click="showReset=false">Hủy</button><button class="btn btn-primary" @click="resetPw">Đặt lại</button></div>
@@ -100,7 +104,7 @@ async function save() {
     toast.success(editing.value ? 'Cập nhật nhân sự thành công!' : 'Thêm nhân sự thành công!')
     await load()
   } catch(e) {
-    formErr.value = e.response?.data?.message || 'Lỗi khi lưu'
+    toast.error(e.response?.data?.message || 'Có lỗi xảy ra khi lưu nhân sự. Vui lòng thử lại.')
   } finally {
     saving.value = false
   }

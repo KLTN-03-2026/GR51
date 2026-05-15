@@ -5,11 +5,12 @@ namespace App\Models;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Notifications\Notifiable;
 
 class NhanSu extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     protected $table = 'nhan_sus';
     protected $hidden = ['mat_khau', 'ma_pin'];
@@ -33,5 +34,14 @@ class NhanSu extends Authenticatable
     public function aiChatHistories()
     {
         return $this->hasMany(AIChatHistory::class, 'nhan_su_id');
+    }
+
+    /**
+     * Override: Laravel Auth mặc định tìm cột 'password',
+     * nhưng DB dùng 'mat_khau'.
+     */
+    public function getAuthPassword()
+    {
+        return $this->mat_khau;
     }
 }

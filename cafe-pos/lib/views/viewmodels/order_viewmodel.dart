@@ -4,6 +4,8 @@ import '../../models/order_model.dart';
 import '../../services/api_service.dart';
 import '../../main.dart';
 import 'auth_viewmodel.dart';
+import 'table_selection_viewmodel.dart';
+import '../../utils/toast_utils.dart';
 import 'package:dart_pusher_channels/dart_pusher_channels.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'dart:convert';
@@ -45,15 +47,58 @@ class OrderViewModel extends ChangeNotifier {
       });
       // Lắng nghe mọi sự kiện trên channel để debug
       channel.bind('new-order').listen((event) {
-        debugPrint("🔔 NHẬN ĐƠN HÀNG MỚI (new-order)!");
+        debugPrint("🔔 NHẬN SỰ KIỆN (new-order)!");
+        // Kiểm tra nguồn đơn: chỉ thông báo nếu là đơn từ QR/web, bỏ qua đơn POS tự tạo
+        bool isWebOrder = false;
+        try {
+          final dynamic rawData = event.data;
+          Map<String, dynamic>? data;
+          if (rawData is String) {
+            data = jsonDecode(rawData);
+          } else if (rawData is Map) {
+            data = Map<String, dynamic>.from(rawData);
+          }
+          isWebOrder = (data?['nguon'] ?? 'qr') == 'qr';
+        } catch (e) {
+          isWebOrder = true; // Mặc định thông báo nếu không parse được
+        }
         loadOrdersSilently();
-        playSoundAndNotify();
+        if (isWebOrder) {
+          playSoundAndNotify();
+        }
+      });
+
+      channel.bind('order-cancelled').listen((event) {
+        debugPrint("🔔 NHẬN SỰ KIỆN (order-cancelled)!");
+        loadOrdersSilently();
+      });
+
+      channel.bind('table-updated').listen((event) {
+        debugPrint("🔔 NHẬN SỰ KIỆN (table-updated)!");
+        if (navigatorKey.currentContext != null) {
+          navigatorKey.currentContext!.read<TableSelectionViewModel>().loadDataSilently();
+        }
       });
 
       channel.bind('App\\Events\\OrderCreated').listen((event) {
-        debugPrint("🔔 NHẬN ĐƠN HÀNG MỚI (App\\Events\\OrderCreated)!");
+        debugPrint("🔔 NHẬN SỰ KIỆN (App\\Events\\OrderCreated)!");
+        bool isWebOrder = false;
+        try {
+          final dynamic rawData = event.data;
+          Map<String, dynamic>? data;
+          if (rawData is String) {
+            data = jsonDecode(rawData);
+          } else if (rawData is Map) {
+            data = Map<String, dynamic>.from(rawData);
+          }
+          isWebOrder = (data?['nguon'] ?? 'qr') == 'qr';
+        } catch (e) {
+          isWebOrder = true;
+        }
         loadOrdersSilently();
-        playSoundAndNotify();
+        if (isWebOrder) {
+          playSoundAndNotify();
+        }
       });
 
       channel.bind('staff-called').listen((event) {
@@ -101,13 +146,7 @@ class OrderViewModel extends ChangeNotifier {
   void playSoundAndNotify() async {
     try {
       if (navigatorKey.currentContext != null) {
-        ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
-          const SnackBar(
-            content: Text('🔔 CÓ ĐƠN HÀNG MỚI TỪ WEB!', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 4),
-          ),
-        );
+        ToastUtils.showSuccess(navigatorKey.currentContext!, '🔔 CÓ ĐƠN HÀNG MỚI TỪ WEB!');
       }
       await _audioPlayer.play(UrlSource('https://actions.google.com/sounds/v1/alarms/beep_short.ogg'));
     } catch (e) {
@@ -118,29 +157,7 @@ class OrderViewModel extends ChangeNotifier {
   void playCallStaffSoundAndNotify(String tableName) async {
     try {
       if (navigatorKey.currentContext != null) {
-        ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.notifications_active, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    '🛎️ BÀN $tableName ĐANG GỌI NHÂN VIÊN!',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: Colors.orange.shade800,
-            duration: const Duration(seconds: 10),
-            action: SnackBarAction(
-              label: 'ĐÃ XONG',
-              textColor: Colors.white,
-              onPressed: () {},
-            ),
-          ),
-        );
+        ToastUtils.showWarning(navigatorKey.currentContext!, '🛎️ BÀN $tableName ĐANG GỌI NHÂN VIÊN!');
       }
       // Sử dụng âm thanh tiếng chuông (Bell) khác để phân biệt với tiếng đơn hàng
       await _audioPlayer.play(AssetSource('sounds/uia_sound.mp3'));
@@ -159,7 +176,7 @@ class OrderViewModel extends ChangeNotifier {
   List<DonHang> get orders => _orders;
 
   List<DonHang> get dangPhaOrders {
-    var list = _orders.where((o) => (o.trangThaiDon == 1 || o.trangThaiDon == 0)).toList();
+    var list = _orders.where((o) => o.trangThaiDon == 1).toList();
     list.sort((a, b) {
       if (a.loaiDon != b.loaiDon) return a.loaiDon == 'mang_di' ? -1 : 1;
       final dA = DateTime.tryParse(a.createdAt ?? '') ?? DateTime.now();
@@ -170,7 +187,7 @@ class OrderViewModel extends ChangeNotifier {
   }
 
   List<DonHang> get pendingPaymentOrders {
-    return _orders.where((o) => o.trangThaiDon == 2 && o.trangThaiThanhToan == 0).toList();
+    return _orders.where((o) => (o.trangThaiDon == 0 || o.trangThaiDon == 2) && o.trangThaiThanhToan == 0).toList();
   }
 
   List<DonHang> get completedOrders {

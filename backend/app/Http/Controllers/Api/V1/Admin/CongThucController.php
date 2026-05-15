@@ -40,7 +40,7 @@ class CongThucController extends Controller
                 'id' => $mon->id,
                 'ma_mon' => $mon->ma_mon,
                 'ten_mon' => $mon->ten_mon,
-                'huong_dan' => $mon->cong_thuc,
+                'huong_dan' => null, // Cột cong_thuc text đã bị xóa, dùng bảng nguyen_lieu chi tiết
                 'nguyen_lieu' => $congThucs,
             ]
         ]);

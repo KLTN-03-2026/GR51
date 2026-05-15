@@ -109,7 +109,7 @@ class NguyenLieuController extends Controller
             'trang_thai' => 'sometimes|required|integer',
         ]);
 
-        $nguyenLieu->update($request->all());
+        $nguyenLieu->update($request->only(['ten_nguyen_lieu', 'hinh_anh', 'don_vi_tinh', 'muc_canh_bao', 'trang_thai']));
 
         return response()->json([
             'success' => true,

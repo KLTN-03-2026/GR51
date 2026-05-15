@@ -7,7 +7,6 @@
         <input type="date" v-model="filters.den_ngay" class="search-input" @change="load" />
         <select v-model="filters.trang_thai_don" class="filter-select" @change="load">
           <option value="">Trạng thái</option>
-          <option :value="0">Chờ xác nhận</option>
           <option :value="1">Đang pha</option>
           <option :value="2">Hoàn thành</option>
           <option :value="3">Đã hủy</option>
@@ -31,7 +30,16 @@
           <td>{{ d.ten_ban }}</td><td>{{ d.nhan_vien }}</td>
           <td style="color:var(--accent);font-weight:600">{{ fmt(d.tong_tien) }}</td>
           <td><span :class="d.trang_thai_thanh_toan === 1 ? 'badge badge-success' : 'badge badge-error'">{{ d.trang_thai_thanh_toan === 1 ? 'Đã TT' : 'Chưa' }}</span></td>
-          <td><span class="badge" :class="{'badge-info': d.trang_thai_don === 0, 'badge-warning': d.trang_thai_don === 1, 'badge-success': d.trang_thai_don === 2, 'badge-error': d.trang_thai_don === 3}">{{ {0: 'Chờ', 1: 'Đang pha', 2: 'Hoàn thành', 3: 'Đã hủy'}[d.trang_thai_don] || d.trang_thai_don }}</span></td>
+          <td>
+            <span class="badge" :class="{
+              'badge-secondary': d.trang_thai_don === 0,
+              'badge-warning': d.trang_thai_don === 1,
+              'badge-success': d.trang_thai_don === 2,
+              'badge-error': d.trang_thai_don === 3
+            }">
+              {{ {0: 'Mới/Chờ TT', 1: 'Đang pha', 2: 'Hoàn thành', 3: 'Đã hủy'}[d.trang_thai_don] }}
+            </span>
+          </td>
           <td>{{ d.thoi_gian }}</td>
           <td><button class="btn btn-ghost btn-sm" @click="detail=d">Xem</button></td>
         </tr>
@@ -82,4 +90,5 @@ onMounted(load)
   color: var(--error);
   font-size: 0.9rem;
 }
+.badge-secondary { background: var(--bg-secondary, #f0f0f0); color: var(--text-muted); }
 </style>

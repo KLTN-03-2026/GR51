@@ -14,13 +14,17 @@ class OrderCreated implements ShouldBroadcastNow
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $donHang;
+    public string $nguon; // 'pos' | 'qr'
 
     /**
      * Create a new event instance.
+     * @param DonHang $donHang
+     * @param string $nguon 'pos' nếu nhân viên tự tạo, 'qr' nếu khách QR hoặc web
      */
-    public function __construct(DonHang $donHang)
+    public function __construct(DonHang $donHang, string $nguon = 'qr')
     {
         $this->donHang = $donHang;
+        $this->nguon = $nguon;
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\DonHang;
+use App\Models\CaLam;
 use App\Models\NguyenLieu;
 use App\Models\ChiTietDonHang;
 use App\Models\DanhGia;
@@ -16,7 +17,7 @@ use Illuminate\Support\Facades\Log;
 class AIService
 {
     private string $apiKey;
-    private string $model = 'gemini-2.0-flash';
+    private string $model = 'gemini-2.5-flash';
 
     public function __construct()
     {
@@ -52,19 +53,22 @@ class AIService
                 'parts' => [['text' => $message]]
             ];
 
+            // Danh sách model Gemini (ưu tiên model có quota khả dụng)
             $models = [
-                ['name' => 'gemini-1.5-flash', 'ver' => 'v1'],
-                ['name' => 'gemini-2.0-flash', 'ver' => 'v1beta'],
-                ['name' => 'gemini-1.5-pro', 'ver' => 'v1'],
+                'gemini-2.5-flash',         // Model chính - đã xác nhận hoạt động
+                'gemini-2.0-flash-lite',     // Fallback nhẹ
+                'gemini-2.0-flash',          // Fallback 
             ];
             $reply = null;
 
-            foreach ($models as $m) {
-                $modelName = $m['name'];
-                $apiVersion = $m['ver'];
+            foreach ($models as $modelName) {
+                $apiVersion = 'v1beta';
 
                 $payload = [
                     'contents' => $contents,
+                    'systemInstruction' => [
+                        'parts' => [['text' => $systemPrompt]]
+                    ],
                     'generationConfig' => [
                         'temperature' => 0.7,
                         'topP' => 0.9,
@@ -72,27 +76,31 @@ class AIService
                     ]
                 ];
 
-                // Cấu hình system instruction
-                $payload['systemInstruction'] = [
-                    'parts' => [['text' => $systemPrompt]]
-                ];
-                
-                $response = Http::timeout(30)->post(
-                    "https://generativelanguage.googleapis.com/{$apiVersion}/models/{$modelName}:generateContent?key={$this->apiKey}",
-                    $payload
-                );
+                try {
+                    $response = Http::timeout(30)->post(
+                        "https://generativelanguage.googleapis.com/{$apiVersion}/models/{$modelName}:generateContent?key={$this->apiKey}",
+                        $payload
+                    );
 
-                if ($response->successful()) {
-                    $data = $response->json();
-                    $reply = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
-                    if ($reply) break;
-                }
+                    if ($response->successful()) {
+                        $data = $response->json();
+                        $reply = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
+                        if ($reply) {
+                            Log::info("AIService: Thành công với model {$modelName} ({$apiVersion})");
+                            break;
+                        }
+                    }
 
-                Log::warning("AIService model {$modelName} ({$apiVersion}) failed. Status: " . $response->status() . " Response: " . $response->body());
+                    $status = $response->status();
+                    Log::warning("AIService model {$modelName} ({$apiVersion}) failed. Status: {$status}");
 
-                if ($response->status() === 429) {
-                    // Nếu bị giới hạn rate limit, đợi 1 chút rồi thử model khác hoặc retry
-                    sleep(1);
+                    if ($status === 429) {
+                        Log::warning("AIService: Model {$modelName} bị rate limit, thử model tiếp theo...");
+                        sleep(2);
+                        continue;
+                    }
+                } catch (\Exception $e) {
+                    Log::warning("AIService: Model {$modelName} exception: " . $e->getMessage());
                     continue;
                 }
             }
@@ -192,7 +200,20 @@ class AIService
         $danhGiaTB = DanhGia::avg('so_sao');
         $tongDanhGia = DanhGia::count();
 
+        // --- Ca làm việc & Nhân sự ---
+        $caHienTai = CaLam::where('trang_thai', 1) // Giả định 1 là đang mở
+            ->with('nhanSu')
+            ->orderByDesc('created_at')
+            ->first();
+        
+        $nhanSuTruc = $caHienTai ? $caHienTai->nhanSu->ho_ten : "Không có ca trực";
+        $doanhThuCa = $caHienTai ? number_format($caHienTai->tong_doanh_thu) . "đ" : "0đ";
+
         $context = "📊 DỮ LIỆU KINH DOANH SMART CAFE (" . now()->format('H:i d/m/Y') . ")\n\n";
+        $context .= "═══ CA LÀM HIỆN TẠI ═══\n";
+        $context .= "Nhân sự trực: {$nhanSuTruc}\n";
+        $context .= "Doanh thu ca: {$doanhThuCa}\n";
+        $context .= "Bắt đầu lúc: " . ($caHienTai ? Carbon::parse($caHienTai->thoi_gian_bat_dau)->format('H:i') : "N/A") . "\n\n";
         $context .= "═══ DOANH THU ═══\n";
         $context .= "Hôm nay: " . number_format($doanhThuHomNay) . "đ ({$tongDonHomNay} đơn)\n";
         $context .= "Hôm qua: " . number_format($doanhThuHomQua) . "đ\n";
@@ -208,14 +229,34 @@ class AIService
 
     private function buildSystemPrompt(string $context): string
     {
-        return "Bạn là Cafe AI - Trợ lý quản lý Smart Cafe. Phân tích dữ liệu thực tế và hỗ trợ chủ quán.
+        return "Bạn là Cafe AI - Trợ lý quản lý Smart Cafe chuyên nghiệp.
+Phân tích dữ liệu thực tế và hỗ trợ chủ quán tối ưu kinh doanh.
+
 Dữ liệu hiện tại:
 {$context}
-Quy tắc:
-1. Trả lời tiếng Việt, chuyên nghiệp.
-2. Dựa trên số liệu thực, không bịa đặt.
-3. Gợi ý hành động thực tế (nhập hàng, khuyến mãi).";
+
+QUY TẮC PHẢN HỒI:
+1. Trả lời bằng tiếng Việt, ngắn gọn, súc tích nhưng đầy đủ thông tin.
+2. Luôn dựa trên số liệu thực từ database được cung cấp ở trên.
+3. Khi phát hiện bất thường (kho sắp hết, doanh thu giảm), phải cảnh báo ngay.
+4. Gợi ý hành động thực tế và sử dụng ĐÚNG ĐỊNH DẠNG 'Quick Action' sau đây để tạo các nút điều hướng nhanh:
+   Sử dụng cú pháp: [Tên Nút](action:đường-dẫn)
+   Ví dụ: [📦 Xem Kho](action:/inventory), [📊 Báo Cáo](action:/reports), [👥 Nhân Viên](action:/staff), [🍔 Thực Đơn](action:/menu-manage)
+
+DANH SÁCH ĐƯỜNG DẪN HỢP LỆ:
+- /dashboard : Bảng điều khiển chính
+- /inventory : Quản lý kho, nguyên liệu
+- /reports : Thống kê, doanh thu, bán chạy
+- /menu-manage : Quản lý món ăn, thực đơn
+- /orders : Danh sách đơn hàng
+- /staff : Quản lý nhân viên, ca làm
+- /reviews : Đánh giá của khách hàng
+- /tables : Quản lý bàn, khu vực
+
+Ví dụ cuối câu trả lời:
+\"Tôi thấy nguyên liệu Sữa Đặc đang sắp hết. Bạn nên [📦 Nhập Kho Ngay](action:/inventory) để không gián đoạn kinh doanh.\"";
     }
+
 
     public function getHistory(string $sessionId): array
     {

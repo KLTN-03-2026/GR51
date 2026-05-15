@@ -208,19 +208,26 @@ class _TableSelectionModalState extends State<TableSelectionModal> {
   }
 
   Widget _buildTableCard(Ban ban) {
-    final isOccupied = ban.trangThai == 1;
+    final isOccupied = ban.trangThai == 2;
+    final isMaintenance = ban.trangThai == 0;
     
     return GestureDetector(
-      onTap: () {
+      onTap: (isMaintenance || isOccupied) ? null : () {
         widget.onSelected(ban.tenBan, ban: ban);
         Navigator.pop(context);
       },
-      child: Container(
-        decoration: BoxDecoration(
-          color: isOccupied ? const Color(0xFFFDFBF7) : Colors.white,
-          border: Border.all(color: isOccupied ? const Color(0xFF6E4423)! : Colors.grey[300]!),
-          borderRadius: BorderRadius.circular(16),
-        ),
+      child: Opacity(
+        opacity: isOccupied ? 0.6 : 1.0,
+        child: Container(
+          decoration: BoxDecoration(
+            color: isOccupied ? const Color(0xFFFDFBF7) : (isMaintenance ? Colors.grey[100] : Colors.white),
+            border: Border.all(
+              color: isOccupied 
+                  ? const Color(0xFF6E4423) 
+                  : (isMaintenance ? Colors.grey[300]! : Colors.grey[300]!)
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
         child: Stack(
           children: [
             Center(
@@ -228,8 +235,10 @@ class _TableSelectionModalState extends State<TableSelectionModal> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.table_bar,    
-                    color: isOccupied ? const Color(0xFF6E4423) : Colors.grey[400],
+                    isMaintenance ? Icons.build_circle_outlined : Icons.table_bar,    
+                    color: isOccupied 
+                        ? const Color(0xFF6E4423) 
+                        : (isMaintenance ? Colors.grey[400] : Colors.grey[400]),
                     size: 32,
                   ),
                   const SizedBox(height: 8),
@@ -238,9 +247,16 @@ class _TableSelectionModalState extends State<TableSelectionModal> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
-                      color: isOccupied ? const Color(0xFF4A2D17) : Colors.black87,
+                      color: isOccupied 
+                          ? const Color(0xFF4A2D17) 
+                          : (isMaintenance ? Colors.grey[500] : Colors.black87),
                     ),
                   ),
+                  if (isMaintenance)
+                    const Text(
+                      'Bảo trì',
+                      style: TextStyle(fontSize: 10, color: Colors.grey),
+                    ),
                 ],
               ),
             ),
@@ -252,7 +268,7 @@ class _TableSelectionModalState extends State<TableSelectionModal> {
                   width: 12,
                   height: 12,
                   decoration: const BoxDecoration(
-                    color: const Color(0xFF6E4423),
+                    color: Color(0xFF6E4423),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -260,6 +276,6 @@ class _TableSelectionModalState extends State<TableSelectionModal> {
           ],
         ),
       ),
-    );
+    ));
   }
 }

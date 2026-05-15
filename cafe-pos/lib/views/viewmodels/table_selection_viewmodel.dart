@@ -48,4 +48,19 @@ class TableSelectionViewModel extends ChangeNotifier {
     _selectedKhuVuc = khuVuc;
     notifyListeners();
   }
+
+  Future<void> loadDataSilently() async {
+    try {
+      final oldSelectedKhuVucId = _selectedKhuVuc?.id;
+      _khuVucs = await _apiService.fetchTableData();
+      if (oldSelectedKhuVucId != null) {
+        _selectedKhuVuc = _khuVucs.firstWhere((kv) => kv.id == oldSelectedKhuVucId, orElse: () => _khuVucs.isNotEmpty ? _khuVucs.first : _selectedKhuVuc!);
+      } else if (_khuVucs.isNotEmpty) {
+        _selectedKhuVuc = _khuVucs.first;
+      }
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Error loading tables silently: $e");
+    }
+  }
 }

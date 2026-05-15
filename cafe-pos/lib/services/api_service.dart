@@ -50,12 +50,16 @@ class ApiService {
         final payload = json.decode(response.body);
         if (payload['success'] == true) return payload;
         throw Exception(payload['message'] ?? 'Đăng nhập thất bại');
+      } else if (response.statusCode == 401) {
+        throw Exception('Tên đăng nhập hoặc mật khẩu không chính xác.');
+      } else if (response.statusCode == 403) {
+        throw Exception('Tài khoản của bạn đã bị khóa hoặc ngưng hoạt động.');
       }
-      throw Exception('Lỗi server: ${response.statusCode}');
+      throw Exception('Lỗi hệ thống (${response.statusCode}). Vui lòng thử lại sau.');
     } catch (e) { rethrow; }
   }
 
-  Future<void> createOrder(
+  Future<Map<String, dynamic>> createOrder(
       List<CartItem> cartItems, 
       String loaiDon, 
       String phuongThucThanhToan,
@@ -76,7 +80,9 @@ class ApiService {
       final headers = await _getHeaders();
       final response = await http.post(url, headers: headers, body: json.encode(payload));
       if (response.statusCode == 401) throw UnauthorizedException();
-      if (response.statusCode != 200 && response.statusCode != 201) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body);
+      } else {
         final err = json.decode(response.body);
         throw Exception(err['message'] ?? 'Lỗi tạo đơn');
       }

@@ -37,6 +37,7 @@ class KhoController extends Controller
             });
 
         return response()->json([
+            'success' => true,
             'data' => $nguyenLieus,
             'message' => 'Lấy danh sách tồn kho thành công'
         ], 200);

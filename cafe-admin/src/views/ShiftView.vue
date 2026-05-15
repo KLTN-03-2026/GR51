@@ -9,7 +9,7 @@
       </div>
     </div>
     <table class="data-table">
-      <thead><tr><th>Mã ca</th><th>Nhân viên</th><th>Bắt đầu</th><th>Kết thúc</th><th>Doanh thu</th><th>Tiền mặt đầu ca</th><th>Tiền mặt hệ thống</th><th>Tổng đơn</th><th>Trạng thái</th></tr></thead>
+      <thead><tr><th>Mã ca</th><th>Nhân viên</th><th>Bắt đầu</th><th>Kết thúc</th><th>Doanh thu</th><th>Tiền mặt đầu ca</th><th>Tiền mặt hệ thống</th><th>Ghi chú</th><th>Trạng thái</th></tr></thead>
       <tbody><tr v-for="c in shifts" :key="c.id">
         <td style="color:var(--text-primary)">{{ c.ma_ca_lam?.slice(-8) }}</td>
         <td style="color:var(--text-primary);font-weight:500">{{ typeof c.nhan_vien === 'object' ? c.nhan_vien?.ho_ten : c.nhan_vien }}</td>
@@ -18,7 +18,10 @@
         <td style="color:var(--accent);font-weight:600">{{ fmt(c.tong_doanh_thu) }}</td>
         <td>{{ fmt(c.tien_mat_dau_ca) }}</td>
         <td>{{ fmt(c.tien_mat_he_thong) }}</td>
-        <td>{{ c.thong_ke?.tong_so_don || 0 }}</td>
+        <td style="max-width:200px; font-size: 0.85rem; color: var(--text-secondary)">
+          <span v-if="c.ghi_chu" :title="c.ghi_chu" class="truncate">{{ c.ghi_chu }}</span>
+          <span v-else class="text-muted">—</span>
+        </td>
         <td><span :class="c.trang_thai === 1 ? 'badge badge-success' : 'badge badge-info'">{{ c.trang_thai === 1 ? 'Đang mở' : 'Đã đóng' }}</span></td>
       </tr></tbody>
     </table>
@@ -38,4 +41,5 @@ onMounted(() => { load(); loadNS() })
 <style scoped>
 .toolbar { margin-bottom:16px } .toolbar-actions { display:flex;gap:10px;flex-wrap:wrap }
 .filter-select { width:160px;padding:8px 12px } .search-input { width:150px;padding:8px 12px }
+.truncate { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
 </style>

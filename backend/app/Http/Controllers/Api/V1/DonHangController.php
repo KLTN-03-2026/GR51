@@ -12,11 +12,14 @@ use App\Models\Ban;
 use App\Models\KichCo;
 use App\Models\Topping;
 use App\Models\ChiTietTopping;
+use App\Models\CaLam;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use App\Events\OrderCancelled;
 use App\Events\OrderCreated;
+use App\Events\TableUpdated;
 
 class DonHangController extends Controller
 {
@@ -59,8 +62,8 @@ class DonHangController extends Controller
         try {
             $request->validate([
                 'chi_tiets' => 'required|array',
-                'loai_don' => 'required',
-                'phuong_thuc_thanh_toan' => 'required',
+                'loai_don' => 'required|in:tai_ban,mang_di',
+                'phuong_thuc_thanh_toan' => 'required|in:tien_mat,chuyen_khoan',
             ]);
 
             DB::beginTransaction();
@@ -74,10 +77,9 @@ class DonHangController extends Controller
 
                 $giaMon = (float) $mon->gia_ban;
                 
-                // Cộng giá kích cỡ
+                // Cộng giá kích cỡ (ưu tiên giá riêng theo món từ pivot)
                 if (isset($item['kich_co_id'])) {
-                    $kc = KichCo::find($item['kich_co_id']);
-                    if ($kc) $giaMon += (float) $kc->gia_cong_them;
+                    $giaMon += $this->getSizePrice($mon->id, $item['kich_co_id']);
                 }
 
                 // Cộng giá toppings
@@ -102,10 +104,24 @@ class DonHangController extends Controller
 
             $ban = $request->input('ban_id') ? Ban::find($request->input('ban_id')) : null;
 
+            // Tìm ca làm đang mở của nhân viên hiện tại
+            $caLam = CaLam::where('nhan_su_id', $request->user()->id)
+                ->where('trang_thai', 1)
+                ->first();
+
+            if (!$caLam) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn chưa mở ca làm. Vui lòng mở ca trước khi tạo đơn hàng.'
+                ], 403);
+            }
+
             $donHang = DonHang::create([
                 'ma_don_hang' => 'DH_' . strtoupper(uniqid()),
                 'ban_id' => $ban ? $ban->id : null,
                 'nhan_su_id' => $request->user()->id,
+                'ca_lam_id' => $caLam ? $caLam->id : null,
                 'loai_don' => $request->input('loai_don'),
                 'tong_tien' => $tongTien,
                 'phuong_thuc_thanh_toan' => $request->input('phuong_thuc_thanh_toan'),
@@ -117,6 +133,11 @@ class DonHangController extends Controller
             if ($ban) {
                 $ban->trang_thai = 2;
                 $ban->save();
+
+                // Broadcast trạng thái bàn mới
+                try {
+                    broadcast(new TableUpdated($ban));
+                } catch (\Exception $e) {}
             }
 
             $orderGhiChu = [];
@@ -124,8 +145,7 @@ class DonHangController extends Controller
                 $mon = Mon::find($item['mon_id']);
                 $giaMon = $mon->gia_ban;
                 if (isset($item['kich_co_id'])) {
-                    $kc = KichCo::find($item['kich_co_id']);
-                    if ($kc) $giaMon += $kc->gia_cong_them;
+                    $giaMon += $this->getSizePrice($mon->id, $item['kich_co_id']);
                 }
 
                 $chiTietDonHang = ChiTietDonHang::create([
@@ -169,7 +189,15 @@ class DonHangController extends Controller
             }
 
             DB::commit();
-            return response()->json(['success' => true, 'data' => $donHang->load(['chiTietDonHangs.mon', 'ban', 'chiTietDonHangs.kichCo', 'chiTietDonHangs.chiTietToppings.topping'])], 201);
+
+            // Broadcast event cho KDS/POS real-time
+            try {
+                broadcast(new OrderCreated($donHang->load(['chiTietDonHangs.mon', 'ban', 'chiTietDonHangs.kichCo', 'chiTietDonHangs.chiTietToppings.topping']), 'pos'));
+            } catch (\Exception $e) {
+                // Không block response nếu broadcast lỗi
+            }
+
+            return response()->json(['success' => true, 'data' => $donHang], 201);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
@@ -183,8 +211,8 @@ class DonHangController extends Controller
     public function showQr($id): JsonResponse
     {
         $donHang = is_numeric($id) 
-            ? DonHang::with(['chiTietDonHangs.mon', 'ban', 'danhGia'])->find($id)
-            : DonHang::with(['chiTietDonHangs.mon', 'ban', 'danhGia'])->where('ma_don_hang', $id)->first();
+            ? DonHang::with(['chiTietDonHangs.mon', 'chiTietDonHangs.kichCo', 'chiTietDonHangs.chiTietToppings.topping', 'ban', 'danhGia'])->find($id)
+            : DonHang::with(['chiTietDonHangs.mon', 'chiTietDonHangs.kichCo', 'chiTietDonHangs.chiTietToppings.topping', 'ban', 'danhGia'])->where('ma_don_hang', $id)->first();
 
         if (!$donHang) {
             return response()->json(['success' => false, 'message' => 'Không tìm thấy đơn hàng'], 404);
@@ -195,6 +223,9 @@ class DonHangController extends Controller
 
     /**
      * Tạo đơn hàng từ QR (Khách hàng)
+     * 
+     * GIÁ ĐƯỢC TÍNH PHÍA SERVER — không tin tưởng giá từ client.
+     * Logic tính giá giống hệt store() (POS).
      */
     public function storeQr(Request $request): JsonResponse
     {
@@ -206,14 +237,46 @@ class DonHangController extends Controller
 
             DB::beginTransaction();
             $chiTiets = $request->input('chi_tiets', []);
-            $tongTien = 0;
 
+            // === TÍNH GIÁ PHÍA SERVER (chống Price Manipulation) ===
+            $tongTien = 0;
             foreach ($chiTiets as $item) {
-                $tongTien += ($item['so_luong'] * $item['don_gia']);
+                $mon = Mon::find($item['mon_id']);
+                if (!$mon) continue;
+
+                $giaMon = (float) $mon->gia_ban;
+
+                // Cộng giá kích cỡ (ưu tiên giá riêng theo món từ pivot)
+                if (isset($item['kich_co_id']) && $item['kich_co_id']) {
+                    $giaMon += $this->getSizePrice($mon->id, $item['kich_co_id']);
+                }
+
+                // Cộng giá toppings
+                $giaToppings = 0;
+                $toppingIds = $item['topping_ids'] ?? [];
+                foreach ($toppingIds as $tpId) {
+                    $id = is_array($tpId) ? ($tpId['topping_id'] ?? $tpId['id']) : $tpId;
+                    $tp = Topping::find($id);
+                    if ($tp) $giaToppings += (float) $tp->gia_tien;
+                }
+
+                $donGiaThucTe = $giaMon + $giaToppings;
+                $tongTien += ($item['so_luong'] * $donGiaThucTe);
             }
 
-            $ban = Ban::where('id', $request->input('ban_id'))
-                      ->orWhere('ma_ban', $request->input('ma_ban'))->first();
+            // === TÌM BÀN ===
+            $ban = null;
+            if ($request->input('ban_id')) {
+                $ban = Ban::find($request->input('ban_id'));
+            }
+            if (!$ban && $request->input('ma_ban')) {
+                $ban = Ban::where('ma_ban', $request->input('ma_ban'))->first();
+            }
+
+            if ($ban && $ban->trang_thai === 0) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => 'Bàn này đang tạm bảo trì, không thể gọi món.'], 403);
+            }
 
             // Kiểm tra tồn kho
             $inventoryErrors = $this->validateInventory($chiTiets);
@@ -222,9 +285,13 @@ class DonHangController extends Controller
                 return response()->json(['success' => false, 'message' => 'Không đủ nguyên liệu', 'errors' => $inventoryErrors], 422);
             }
 
+            // Tìm ca làm đang mở (bất kỳ nhân viên nào)
+            $caLam = CaLam::where('trang_thai', 1)->first();
+
             $donHang = DonHang::create([
-                'ma_don_hang' => 'DH_' . uniqid(),
+                'ma_don_hang' => 'DH_' . strtoupper(uniqid()),
                 'ban_id' => $ban ? $ban->id : null,
+                'ca_lam_id' => $caLam ? $caLam->id : null,
                 'loai_don' => 'tai_ban',
                 'tong_tien' => $tongTien,
                 'phuong_thuc_thanh_toan' => $request->input('phuong_thuc_thanh_toan', 'tien_mat'),
@@ -236,20 +303,52 @@ class DonHangController extends Controller
             if ($ban) {
                 $ban->trang_thai = 2;
                 $ban->save();
+
+                // Broadcast trạng thái bàn mới
+                try {
+                    broadcast(new TableUpdated($ban));
+                } catch (\Exception $e) {}
             }
 
+            // === LƯU CHI TIẾT ĐƠN HÀNG + TOPPING (giống store()) ===
             $orderGhiChu = [];
             foreach ($chiTiets as $item) {
-                ChiTietDonHang::create([
-                    'ma_chi_tiet' => 'CT_' . uniqid(),
+                $mon = Mon::find($item['mon_id']);
+                if (!$mon) continue;
+
+                $giaMon = (float) $mon->gia_ban;
+                if (isset($item['kich_co_id']) && $item['kich_co_id']) {
+                    $giaMon += $this->getSizePrice($mon->id, $item['kich_co_id']);
+                }
+
+                $chiTietDonHang = ChiTietDonHang::create([
+                    'ma_chi_tiet' => 'CT_' . strtoupper(uniqid()),
                     'don_hang_id' => $donHang->id,
                     'mon_id' => $item['mon_id'],
+                    'kich_co_id' => $item['kich_co_id'] ?? null,
                     'so_luong' => $item['so_luong'],
-                    'don_gia' => $item['don_gia'],
+                    'don_gia' => $giaMon,
                     'ghi_chu' => $item['ghi_chu'] ?? null,
                 ]);
+
                 if (!empty($item['ghi_chu'])) {
                     $orderGhiChu[] = $item['ghi_chu'];
+                }
+
+                // Lưu toppings vào chi_tiet_toppings
+                $toppingIds = $item['topping_ids'] ?? [];
+                foreach ($toppingIds as $tpId) {
+                    $id = is_array($tpId) ? ($tpId['topping_id'] ?? $tpId['id']) : $tpId;
+                    $tp = Topping::find($id);
+                    if ($tp) {
+                        ChiTietTopping::create([
+                            'ma_chi_tiet_topping' => 'CTT_' . strtoupper(uniqid()),
+                            'chi_tiet_don_hang_id' => $chiTietDonHang->id,
+                            'topping_id' => $tp->id,
+                            'so_luong' => 1,
+                            'gia_tien' => $tp->gia_tien,
+                        ]);
+                    }
                 }
             }
 
@@ -264,7 +363,7 @@ class DonHangController extends Controller
             DB::commit();
             
             // Dispatch event for real-time notification
-            broadcast(new OrderCreated($donHang->load(['chiTietDonHangs.mon', 'ban', 'chiTietDonHangs.kichCo', 'chiTietDonHangs.chiTietToppings.topping'])));
+            broadcast(new OrderCreated($donHang->load(['chiTietDonHangs.mon', 'ban', 'chiTietDonHangs.kichCo', 'chiTietDonHangs.chiTietToppings.topping']), 'qr'));
             
             return response()->json(['success' => true, 'data' => $donHang], 201);
         } catch (\Exception $e) {
@@ -321,15 +420,15 @@ class DonHangController extends Controller
 
             $donHang->save();
 
+            // Broadcast để cập nhật KDS/POS real-time
+            try {
+                broadcast(new OrderCreated($donHang->load(['chiTietDonHangs.mon', 'ban', 'chiTietDonHangs.kichCo', 'chiTietDonHangs.chiTietToppings.topping']), 'pos'));
+            } catch (\Exception $e) {}
+
             // Nếu đơn hàng Hoàn thành (2) VÀ đã Thanh toán (1), hoặc đơn bị Hủy (3) -> Giải phóng bàn
+            // Chỉ giải phóng nếu KHÔNG CÒN đơn nào khác đang active trên bàn này
             if (($donHang->trang_thai_don == 2 && $donHang->trang_thai_thanh_toan == 1) || $donHang->trang_thai_don == 3) {
-                if ($donHang->ban_id) {
-                    $ban = Ban::find($donHang->ban_id);
-                    if ($ban) {
-                        $ban->trang_thai = 1; // Trống
-                        $ban->save();
-                    }
-                }
+                $this->tryReleaseBan($donHang->ban_id, $donHang->id);
             }
 
             DB::commit();
@@ -358,14 +457,11 @@ class DonHangController extends Controller
             $donHang->ly_do_huy = $request->input('ly_do_huy', 'Nhân viên hủy đơn');
             $donHang->save();
 
-            // Giải phóng bàn khi hủy
-            if ($donHang->ban_id) {
-                $ban = Ban::find($donHang->ban_id);
-                if ($ban) {
-                    $ban->trang_thai = 1; // Trống
-                    $ban->save();
-                }
-            }
+            // Broadcast sự kiện hủy đơn
+            broadcast(new OrderCancelled($donHang));
+
+            // Giải phóng bàn khi hủy (chỉ nếu không còn đơn active khác)
+            $this->tryReleaseBan($donHang->ban_id, $donHang->id);
 
             DB::commit();
             return response()->json(['success' => true, 'message' => 'Đã hủy đơn hàng. Nguyên liệu không được hoàn trả vì đã được pha chế.']);
@@ -397,6 +493,12 @@ class DonHangController extends Controller
             $donHang->ly_do_huy = $request->input('ly_do_huy', 'Khách hàng tự hủy');
             $donHang->save();
 
+            // Broadcast sự kiện hủy đơn
+            broadcast(new OrderCancelled($donHang));
+
+            // Giải phóng bàn khi hủy (chỉ nếu không còn đơn active khác)
+            $this->tryReleaseBan($donHang->ban_id, $donHang->id);
+
             DB::commit();
             return response()->json(['success' => true, 'message' => 'Đã hủy đơn hàng thành công.']);
         } catch (\Exception $e) {
@@ -407,6 +509,9 @@ class DonHangController extends Controller
 
     private function deductInventory(DonHang $donHang)
     {
+        // Lấy nhan_su_id an toàn: Auth::id() sẽ null cho đơn QR (không xác thực)
+        $nhanSuId = Auth::id() ?? $donHang->nhan_su_id;
+
         $donHang->load(['chiTietDonHangs.mon.congThucs', 'chiTietDonHangs.chiTietToppings.topping.congThucs']);
         foreach ($donHang->chiTietDonHangs as $chiTiet) {
             // Trừ kho món chính
@@ -417,7 +522,7 @@ class DonHangController extends Controller
                     LichSuKho::create([
                         'ma_ls_kho' => 'LSK_' . uniqid(),
                         'nguyen_lieu_id' => $ct->nguyen_lieu_id,
-                        'nhan_su_id' => Auth::id(),
+                        'nhan_su_id' => $nhanSuId,
                         'loai_giao_dich' => 2, // Xuất
                         'so_luong_thay_doi' => -$qty
                     ]);
@@ -434,7 +539,7 @@ class DonHangController extends Controller
                         LichSuKho::create([
                             'ma_ls_kho' => 'LSK_' . uniqid(),
                             'nguyen_lieu_id' => $ct->nguyen_lieu_id,
-                            'nhan_su_id' => Auth::id(),
+                            'nhan_su_id' => $nhanSuId,
                             'loai_giao_dich' => 2, // Xuất
                             'so_luong_thay_doi' => -$qty
                         ]);
@@ -444,6 +549,11 @@ class DonHangController extends Controller
         }
     }
 
+    /**
+     * Hoàn kho khi hủy đơn.
+     * @deprecated Hiện không được sử dụng vì quy trình hiện tại không hoàn trả nguyên liệu khi hủy đơn
+     *             (nguyên liệu đã pha chế, không thể hoàn). Giữ lại để dùng trong tương lai nếu cần.
+     */
     private function restoreInventory(DonHang $donHang)
     {
         $donHang->load(['chiTietDonHangs.mon.congThucs', 'chiTietDonHangs.chiTietToppings.topping.congThucs']);
@@ -544,5 +654,63 @@ class DonHangController extends Controller
             }
         }
         return $errors;
+    }
+
+    /**
+     * Lấy giá phụ thu kích cỡ theo món.
+     * Ưu tiên giá riêng trong pivot mon_kich_co, fallback về giá global trong kich_cos.
+     */
+    private function getSizePrice(int $monId, int $kichCoId): float
+    {
+        // Tìm giá riêng theo món trong pivot table
+        $pivot = DB::table('mon_kich_co')
+            ->where('mon_id', $monId)
+            ->where('kich_co_id', $kichCoId)
+            ->first();
+
+        if ($pivot && $pivot->gia_cong_them !== null) {
+            return (float) $pivot->gia_cong_them;
+        }
+
+        // Fallback: dùng giá global từ bảng kich_cos
+        $kc = KichCo::find($kichCoId);
+        return $kc ? (float) $kc->gia_cong_them : 0;
+    }
+
+    /**
+     * Giải phóng bàn nếu KHÔNG CÒN đơn hàng active nào khác trên cùng bàn.
+     * Tránh race condition khi 1 bàn có nhiều đơn (ví dụ khách QR đặt thêm).
+     *
+     * @param int|null $banId ID bàn cần kiểm tra
+     * @param int $excludeDonHangId ID đơn hàng hiện tại (để loại trừ)
+     */
+    private function tryReleaseBan(?int $banId, int $excludeDonHangId): void
+    {
+        if (!$banId) return;
+
+        // Đếm số đơn active (đang pha = 1, hoặc hoàn thành nhưng chưa thanh toán) trên bàn này
+        $activeCount = DonHang::where('ban_id', $banId)
+            ->where('id', '!=', $excludeDonHangId)
+            ->where(function ($q) {
+                $q->whereIn('trang_thai_don', [0, 1]) // Chờ xử lý hoặc Đang pha
+                  ->orWhere(function ($q2) {
+                      $q2->where('trang_thai_don', 2) // Hoàn thành
+                         ->where('trang_thai_thanh_toan', 0); // Nhưng chưa thanh toán
+                  });
+            })
+            ->count();
+
+        if ($activeCount === 0) {
+            $ban = Ban::find($banId);
+            if ($ban) {
+                $ban->trang_thai = 1; // Trống
+                $ban->save();
+
+                // Broadcast trạng thái bàn mới
+                try {
+                    broadcast(new TableUpdated($ban));
+                } catch (\Exception $e) {}
+            }
+        }
     }
 }

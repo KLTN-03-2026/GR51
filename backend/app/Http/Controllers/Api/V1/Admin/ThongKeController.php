@@ -37,9 +37,10 @@ class ThongKeController extends Controller
 
             $tongDoanhThu = $donHangs->where('trang_thai_thanh_toan', 1)->sum('tong_tien');
             $tongDon = $donHangs->count();
+            $tongDonDaThanhToan = $donHangs->where('trang_thai_thanh_toan', 1)->count();
             $donHuy = $donHangs->where('trang_thai_don', 3)->count();
             
-            $trungBinhDon = $tongDon > 0 ? round($tongDoanhThu / $tongDon, 0) : 0;
+            $trungBinhDon = $tongDonDaThanhToan > 0 ? round($tongDoanhThu / $tongDonDaThanhToan, 0) : 0;
             $tyLeHuy = $tongDon > 0 ? round(($donHuy / $tongDon) * 100, 1) : 0;
 
             // Doanh thu theo ngày (để vẽ biểu đồ)
@@ -48,6 +49,14 @@ class ThongKeController extends Controller
                 ->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(tong_tien) as revenue'))
                 ->groupBy('date')
                 ->orderBy('date')
+                ->get();
+
+            // Doanh thu theo giờ (Trung bình hoặc tổng trong khoảng thời gian)
+            $hourlyDistribution = DonHang::whereBetween('created_at', [$startDate, $endDate])
+                ->where('trang_thai_thanh_toan', 1)
+                ->select(DB::raw('HOUR(created_at) as hour'), DB::raw('SUM(tong_tien) as revenue'))
+                ->groupBy('hour')
+                ->orderBy('hour')
                 ->get();
 
             return response()->json([
@@ -59,7 +68,8 @@ class ThongKeController extends Controller
                         'trung_binh_don' => (float)$trungBinhDon,
                         'ty_le_huy' => (float)$tyLeHuy,
                     ],
-                    'chart_data' => $revenueByDate
+                    'chart_data' => $revenueByDate,
+                    'hourly_distribution' => $hourlyDistribution
                 ]
             ]);
         } catch (\Exception $e) {

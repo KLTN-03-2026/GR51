@@ -24,7 +24,7 @@ class MonController extends Controller
         // Kiểm tra món ăn
         if (!$mon) {
             return response()->json([
-                'status' => 'error',
+                'success' => false,
                 'message' => 'Không tìm thấy món ăn'
             ], 404);
         }
@@ -42,9 +42,9 @@ class MonController extends Controller
 
         // Trả về JSON theo đúng định dạng mẫu yêu cầu (thỏa mãn yêu cầu số 1 và 4)
         return response()->json([
-            'status' => 'success',
+            'success' => true,
             'data' => [
-                'huong_dan' => $mon->cong_thuc,
+                'huong_dan' => null, // Cột cong_thuc text đã bị xóa, dùng danh_sach_nguyen_lieu chi tiết
                 'danh_sach_nguyen_lieu' => $danhSachNguyenLieu->values()->all()
             ]
         ], 200);

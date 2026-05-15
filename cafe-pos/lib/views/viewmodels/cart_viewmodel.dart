@@ -52,25 +52,44 @@ class CartViewModel extends ChangeNotifier {
   final ApiService _apiService = ApiService();
   bool isSubmitting = false;
 
-  Future<bool> submitOrder({
+  Future<Map<String, dynamic>?> submitOrder({
     required String loaiDon,
     required String phuongThucThanhToan,
     int? banId,
     required int trangThaiThanhToan,
     required int trangThaiDon,
+    bool shouldClearCart = true, // Đổi tên để tránh trùng với hàm clearCart()
   }) async {
-    if (cartItems.isEmpty) return false;
+    if (cartItems.isEmpty) return null;
     isSubmitting = true; notifyListeners();
 
     String mappedPhuongThuc = (phuongThucThanhToan.toLowerCase().contains('chuyen_khoan') || phuongThucThanhToan.toLowerCase().contains('chuyển khoản')) ? 'chuyen_khoan' : 'tien_mat';
     String mappedLoaiDon = (loaiDon.toLowerCase().contains('mang_di') || loaiDon.toLowerCase().contains('mang đi')) ? 'mang_di' : 'tai_ban';
 
     try {
-      await _apiService.createOrder(
+      final result = await _apiService.createOrder(
           cartItems, mappedLoaiDon, mappedPhuongThuc, banId, trangThaiThanhToan, trangThaiDon);
-      clearCart();
+      
+      if (shouldClearCart) {
+        clearCart();
+      }
+      
       isSubmitting = false; notifyListeners();
-      return true;
+      return result;
+    } catch (e) {
+      isSubmitting = false; notifyListeners();
+      return null;
+    }
+  }
+  Future<bool> updateOrder(int orderId, int trangThaiThanhToan, int trangThaiDon) async {
+    isSubmitting = true; notifyListeners();
+    try {
+      final success = await _apiService.updatePaymentAndOrderStatus(orderId, trangThaiThanhToan, trangThaiDon);
+      if (success) {
+        clearCart();
+      }
+      isSubmitting = false; notifyListeners();
+      return success;
     } catch (e) {
       isSubmitting = false; notifyListeners();
       return false;

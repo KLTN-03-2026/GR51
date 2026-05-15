@@ -10,7 +10,7 @@ const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price) + '�
 
 // Status Mapping (0: Chờ, 1: Đang pha, 2: Hoàn thành, 3: Đã hủy)
 const statusConfig = {
-  0: { label: 'Đang pha chế', color: '#3B82F6', icon: '☕' },
+  0: { label: 'Đang chờ xử lý', color: '#3B82F6', icon: '⏳' },
   1: { label: 'Đang pha chế', color: '#F97316', icon: '☕' },
   3: { label: 'Đã Huỷ', color: '#EF4444', icon: '❌' }
 }
@@ -86,6 +86,23 @@ onUnmounted(() => { if (pollingInterval) clearInterval(pollingInterval) })
           <span class="status-text">{{ getStatusProps(order).label }}</span>
         </div>
 
+        <!-- Order Details -->
+        <div class="order-items-detail">
+          <div v-for="item in order.chi_tiet_don_hangs" :key="item.id" class="item-row">
+            <div class="item-main">
+              <span class="item-qty">{{ item.so_luong }}x</span>
+              <span class="item-name">{{ item.mon?.ten_mon }}</span>
+              <span v-if="item.kich_co" class="item-size">({{ item.kich_co.ten_kich_co }})</span>
+            </div>
+            <div v-if="item.chi_tiet_toppings && item.chi_tiet_toppings.length > 0" class="item-toppings">
+              + {{ item.chi_tiet_toppings.map(ct => ct.topping.ten_topping).join(', ') }}
+            </div>
+            <div v-if="item.ghi_chu" class="item-note">
+              📝 {{ item.ghi_chu }}
+            </div>
+          </div>
+        </div>
+
         <div v-if="order.trang_thai_don === 2 && order.trang_thai_thanh_toan === 1 && !order.da_danh_gia" class="review-box">
           <p class="review-prompt">Bạn thấy đồ uống thế nào?</p>
           <div class="stars">
@@ -106,7 +123,8 @@ onUnmounted(() => { if (pollingInterval) clearInterval(pollingInterval) })
         </div>
 
         <div v-if="order.phuong_thuc_thanh_toan === 'chuyen_khoan' && order.trang_thai_thanh_toan !== 1" class="vietqr-box">
-           <img :src="'https://api.vietqr.io/image/970436-123456789-F2lZkQK.jpg?amount=' + order.tong_tien + '&addInfo=CK' + (order.ma_don_hang || '').slice(-8)" alt="VietQR" class="qr-image" />
+           <img :src="'https://img.vietqr.io/image/MB-0944799214-compact2.png?amount=' + order.tong_tien + '&addInfo=' + (order.ma_don_hang || '') + '&accountName=NGUYEN TRAN DANG TRUONG'" alt="VietQR" class="qr-image" />
+           <p class="qr-account-info">MB Bank • 0944799214 • NGUYEN TRAN DANG TRUONG</p>
            <p class="qr-desc">Vui lòng quét mã để thanh toán.</p>
         </div>
 
@@ -126,8 +144,9 @@ onUnmounted(() => { if (pollingInterval) clearInterval(pollingInterval) })
 .order-status-badge { display: flex; align-items: center; gap: 8px; padding: 12px; border-radius: 12px; font-weight: 700; margin-bottom: 15px; }
 .payment-info { background: #f9f9f9; padding: 12px; border-radius: 12px; margin-bottom: 15px; font-size: 14px; }
 .paid-badge { color: #10B981; } .unpaid-badge { color: #F59E0B; }
-.vietqr-box { text-align: center; border: 1px solid #eee; padding: 15px; border-radius: 12px; }
-.qr-image { width: 180px; height: 180px; margin: 0 auto; }
+.vietqr-box { text-align: center; border: 1px solid #eee; padding: 20px; border-radius: 12px; background: #fafbff; }
+.qr-image { width: 250px; height: auto; margin: 0 auto; border-radius: 8px; }
+.qr-account-info { font-size: 12px; color: #555; margin-top: 10px; font-weight: 600; }
 .primary-btn { width: 100%; background: var(--color-primary); color: #fff; padding: 14px; border-radius: 12px; font-weight: 600; }
 .outline-btn { width: 100%; border: 2px solid var(--color-primary); color: var(--color-primary); padding: 14px; border-radius: 12px; font-weight: 600; }
 .review-box { text-align: center; padding: 20px 0; margin-bottom: 15px; }
@@ -140,4 +159,45 @@ onUnmounted(() => { if (pollingInterval) clearInterval(pollingInterval) })
 .review-input { width: 100%; padding: 16px; border: 1.5px solid #eaeaea; border-radius: 14px; font-family: inherit; font-size: 15px; resize: none; outline: none; transition: all 0.2s; background: #fafafa; color: #333; box-sizing: border-box; }
 .review-input:focus { border-color: var(--color-primary); background: #fff; box-shadow: 0 0 0 4px rgba(110, 68, 35, 0.08); }
 .review-input::placeholder { color: #aaa; }
+
+.order-items-detail {
+  padding: 12px 0;
+  border-top: 1px solid #f0f0f0;
+  margin-top: 10px;
+}
+.item-row {
+  margin-bottom: 12px;
+}
+.item-row:last-child {
+  margin-bottom: 0;
+}
+.item-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #333;
+}
+.item-qty {
+  color: var(--color-primary);
+  font-size: 14px;
+}
+.item-size {
+  font-size: 13px;
+  color: #666;
+  font-weight: 400;
+}
+.item-toppings {
+  font-size: 12px;
+  color: #888;
+  padding-left: 30px;
+  margin-top: 2px;
+}
+.item-note {
+  font-size: 12px;
+  color: #f97316;
+  padding-left: 30px;
+  margin-top: 2px;
+  font-style: italic;
+}
 </style>

@@ -28,7 +28,7 @@ class CaLamController extends Controller
 
         if ($caLamHienTai) {
             return response()->json([
-                'status' => 'error',
+                'success' => false,
                 'message' => 'Bạn đang có một ca làm chưa kết thúc!'
             ], 400);
         }
@@ -49,7 +49,7 @@ class CaLamController extends Controller
         ]);
 
         return response()->json([
-            'status' => 'success',
+            'success' => true,
             'message' => 'Mở ca thành công!',
             'data' => $caLamMoi
         ], 201);
@@ -67,27 +67,20 @@ class CaLamController extends Controller
 
         if (!$caLam) {
             return response()->json([
-                'status' => 'error',
+                'success' => false,
                 'message' => 'Không có ca làm nào đang mở.',
                 'data' => null
             ], 404);
         }
 
-        // Kéo tất cả đơn hàng đã thanh toán trong ca
-        $startTime = Carbon::parse($caLam->thoi_gian_bat_dau);
-        
-        $donHangs = DonHang::where(function($q) use ($nhanSuId) {
-                $q->where('nhan_su_id', $nhanSuId)
-                  ->orWhereNull('nhan_su_id');
-            })
+        // Kéo tất cả đơn hàng đã thanh toán trong ca (dùng ca_lam_id thay vì time-range)
+        $donHangs = DonHang::where('ca_lam_id', $caLam->id)
             ->where('trang_thai_thanh_toan', 1) 
-            ->where('created_at', '>=', $startTime)
             ->get();
 
         // Đếm đơn đang xử lý (1: Đang pha, 0: Chờ xử lý)
-        $donDangXuLy = DonHang::where('nhan_su_id', $nhanSuId)
+        $donDangXuLy = DonHang::where('ca_lam_id', $caLam->id)
             ->whereIn('trang_thai_don', [0, 1])
-            ->where('created_at', '>=', $startTime)
             ->count();
 
         $tongSoDon = $donHangs->count();
@@ -102,7 +95,7 @@ class CaLamController extends Controller
         $tienMatHeThong = (float)$caLam->tien_mat_dau_ca + (float)$tienMat;
 
         return response()->json([
-            'status' => 'success',
+            'success' => true,
             'data' => [
                 'ma_ca_lam' => $caLam->ma_ca_lam,
                 'thoi_gian_bat_dau' => $caLam->thoi_gian_bat_dau,
@@ -144,34 +137,27 @@ class CaLamController extends Controller
             if (!$caLam) {
                 DB::rollBack();
                 return response()->json([
-                    'status' => 'error',
+                    'success' => false,
                     'message' => 'Không tìm thấy ca làm đang mở để kết thúc.'
                 ], 404);
             }
 
-            // Kiểm tra đơn đang xử lý (0, 1)
-            $donDangXuLy = DonHang::where('nhan_su_id', $nhanSuId)
+            // Kiểm tra đơn đang xử lý trong ca (dùng ca_lam_id)
+            $donDangXuLy = DonHang::where('ca_lam_id', $caLam->id)
                 ->whereIn('trang_thai_don', [0, 1])
-                ->where('created_at', '>=', $caLam->thoi_gian_bat_dau)
                 ->count();
 
             if ($donDangXuLy > 0) {
                 DB::rollBack();
                 return response()->json([
-                    'status' => 'error',
+                    'success' => false,
                     'message' => "Còn $donDangXuLy đơn hàng đang xử lý. Vui lòng hoàn thành trước khi kết ca.",
                     'don_dang_xu_ly' => $donDangXuLy,
                 ], 400);
             }
 
-            $startTime = Carbon::parse($caLam->thoi_gian_bat_dau);
-
-            $queryShiftOrders = DonHang::where(function($q) use ($nhanSuId) {
-                    $q->where('nhan_su_id', $nhanSuId)
-                      ->orWhereNull('nhan_su_id');
-                })
-                ->where('trang_thai_thanh_toan', 1)
-                ->where('created_at', '>=', $startTime);
+            $queryShiftOrders = DonHang::where('ca_lam_id', $caLam->id)
+                ->where('trang_thai_thanh_toan', 1);
 
             $tienMatBanDuoc = (clone $queryShiftOrders)
                 ->where('phuong_thuc_thanh_toan', 'tien_mat')
@@ -194,7 +180,7 @@ class CaLamController extends Controller
             DB::commit();
 
             return response()->json([
-                'status' => 'success',
+                'success' => true,
                 'message' => 'Kết ca thành công!',
                 'data' => [
                     'ca_lam' => $caLam,
@@ -206,7 +192,7 @@ class CaLamController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
-                'status' => 'error',
+                'success' => false,
                 'message' => 'Lỗi kết ca: ' . $e->getMessage()
             ], 500);
         }

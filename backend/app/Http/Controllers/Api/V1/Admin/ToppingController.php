@@ -36,7 +36,13 @@ class ToppingController extends Controller
         $topping = Topping::find($id);
         if (!$topping) return response()->json(['success' => false, 'message' => 'Không tìm thấy'], 404);
 
-        $topping->update($request->all());
+        $request->validate([
+            'ten_topping' => 'sometimes|required|string|max:255',
+            'gia_tien' => 'sometimes|required|numeric|min:0',
+            'trang_thai' => 'sometimes|required|integer',
+        ]);
+
+        $topping->update($request->only(['ten_topping', 'hinh_anh', 'gia_tien', 'trang_thai']));
         return response()->json(['success' => true, 'data' => $topping]);
     }
 
@@ -44,6 +50,18 @@ class ToppingController extends Controller
     {
         $topping = Topping::find($id);
         if (!$topping) return response()->json(['success' => false, 'message' => 'Không tìm thấy'], 404);
+
+        // Kiểm tra xem topping có đang nằm trong đơn hàng đang xử lý không
+        $isUsed = $topping->chiTietToppings()->whereHas('chiTietDonHang.donHang', function($q) {
+            $q->whereIn('trang_thai_don', [0, 1]); // 0: Chờ xác nhận, 1: Đang pha
+        })->exists();
+
+        if ($isUsed) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Không thể xóa Topping đang có trong đơn hàng chờ pha chế.'
+            ], 400);
+        }
 
         $topping->delete();
         return response()->json(['success' => true, 'message' => 'Xóa thành công']);

@@ -19,7 +19,7 @@ class MenuController extends Controller
             'mons.sizes'
         ])->get();
 
-        // Xử lý logic check hết hàng
+        // Xử lý logic check hết hàng + merge giá size riêng theo món
         $danhMucs->each(function ($danhMuc) {
             $danhMuc->mons->each(function ($mon) {
                 $isHetHang = false;
@@ -32,6 +32,14 @@ class MenuController extends Controller
                     }
                 }
                 $mon->is_het_hang = $isHetHang;
+
+                // Merge pivot gia_cong_them vào sizes để frontend nhận giá riêng theo món
+                // Nếu pivot.gia_cong_them != null → dùng giá riêng, ngược lại giữ giá global
+                $mon->sizes->each(function ($size) {
+                    if ($size->pivot && $size->pivot->gia_cong_them !== null) {
+                        $size->gia_cong_them = $size->pivot->gia_cong_them;
+                    }
+                });
             });
         });
 

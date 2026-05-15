@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/menu_model.dart';
 import '../../models/cart_item_model.dart';
+import '../utils/toast_utils.dart';
 
 class ItemOptionsModal extends StatefulWidget {
   final Mon mon;
@@ -292,7 +293,7 @@ itemBuilder: (context, index) {
                   ElevatedButton(
                     onPressed: () {
                       if (widget.sizes.isNotEmpty && _selectedSize == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng chọn Size!')));
+                        ToastUtils.showWarning(context, 'Vui lòng chọn Size!');
                         return;
                       }
                       

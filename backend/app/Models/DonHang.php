@@ -11,6 +11,7 @@ class DonHang extends Model
         'ma_don_hang',
         'ban_id',
         'nhan_su_id',
+        'ca_lam_id',
         'loai_don',
         'tong_tien',
         'phuong_thuc_thanh_toan',
@@ -30,6 +31,11 @@ class DonHang extends Model
     public function ban()
     {
         return $this->belongsTo(Ban::class, 'ban_id');
+    }
+
+    public function caLam()
+    {
+        return $this->belongsTo(CaLam::class, 'ca_lam_id');
     }
 
     public function nhanSu()

@@ -23,54 +23,67 @@ class DashboardController extends Controller
             $today = Carbon::today();
 
             // === 1. Thống kê hôm nay ===
-            $donHangsHomNay = DonHang::whereDate('created_at', $today)->get();
-
-            $tongDoanhThuHomNay = $donHangsHomNay
-                ->where('trang_thai_thanh_toan', 1) // 1: Đã thanh toán
+            $thongKeHomNayQuery = DonHang::whereDate('created_at', $today);
+            
+            $tongDoanhThuHomNay = (float) DonHang::whereDate('created_at', $today)
+                ->where('trang_thai_thanh_toan', 1)
                 ->sum('tong_tien');
 
-            $tongDonHomNay = $donHangsHomNay->count();
+            $tongDonHomNay = DonHang::whereDate('created_at', $today)->count();
+            $tongDonDaThanhToan = DonHang::whereDate('created_at', $today)
+                ->where('trang_thai_thanh_toan', 1)
+                ->count();
 
-            $trungBinhDon = $tongDonHomNay > 0
-                ? round($tongDoanhThuHomNay / $tongDonHomNay, 0)
+            $trungBinhDon = $tongDonDaThanhToan > 0
+                ? round($tongDoanhThuHomNay / $tongDonDaThanhToan, 0)
                 : 0;
 
             // === 2. Nguyên liệu cảnh báo ===
-            $nguyenLieuSapHet = NguyenLieu::where('trang_thai', 1) // 1: Hoạt động
-                ->whereColumn('ton_kho', '<=', 'muc_canh_bao')
-                ->where('ton_kho', '>', 0)
-                ->count();
+            $nguyenLieuStats = NguyenLieu::where('trang_thai', 1)
+                ->selectRaw('COUNT(CASE WHEN ton_kho <= muc_canh_bao AND ton_kho > 0 THEN 1 END) as sap_het')
+                ->selectRaw('COUNT(CASE WHEN ton_kho <= 0 THEN 1 END) as het_hang')
+                ->first();
 
-            $nguyenLieuHetHang = NguyenLieu::where('trang_thai', 1)
-                ->where('ton_kho', '<=', 0)
-                ->count();
+            $nguyenLieuSapHet = $nguyenLieuStats->sap_het;
+            $nguyenLieuHetHang = $nguyenLieuStats->het_hang;
 
-            // === 3. Doanh thu 7 ngày gần nhất ===
+            // === 3. Doanh thu 7 ngày gần nhất (Single Query) ===
+            $sevenDaysAgo = Carbon::today()->subDays(6);
+            $doanhThu7NgayRaw = DonHang::where('created_at', '>=', $sevenDaysAgo)
+                ->where('trang_thai_thanh_toan', 1)
+                ->selectRaw('DATE(created_at) as date, SUM(tong_tien) as total')
+                ->groupBy('date')
+                ->pluck('total', 'date')
+                ->toArray();
+
             $doanhThu7Ngay = [];
             for ($i = 6; $i >= 0; $i--) {
-                $date = Carbon::today()->subDays($i);
-                $revenue = DonHang::whereDate('created_at', $date)
-                    ->where('trang_thai_thanh_toan', 1)
-                    ->sum('tong_tien');
-
+                $date = Carbon::today()->subDays($i)->format('Y-m-d');
                 $doanhThu7Ngay[] = [
-                    'ngay' => $date->format('d/m'),
-                    'doanh_thu' => (float) $revenue
+                    'ngay' => Carbon::parse($date)->format('d/m'),
+                    'doanh_thu' => (float) ($doanhThu7NgayRaw[$date] ?? 0)
                 ];
             }
 
-            // === 4. Đơn hàng theo trạng thái (hôm nay) ===
+            // === 4. Đơn hàng theo trạng thái (hôm nay) (Single Query) ===
+            $donTheoTrangThaiRaw = DonHang::whereDate('created_at', $today)
+                ->selectRaw('trang_thai_don, COUNT(*) as count')
+                ->groupBy('trang_thai_don')
+                ->pluck('count', 'trang_thai_don')
+                ->toArray();
+
             $donTheoTrangThai = [
-                'cho_xu_ly' => $donHangsHomNay->where('trang_thai_don', 0)->count(),
-                'dang_pha' => $donHangsHomNay->where('trang_thai_don', 1)->count(),
-                'hoan_thanh' => $donHangsHomNay->where('trang_thai_don', 2)->count(),
-                'da_huy' => $donHangsHomNay->where('trang_thai_don', 3)->count(),
+                'cho_xu_ly' => $donTheoTrangThaiRaw[0] ?? 0,
+                'dang_pha' => $donTheoTrangThaiRaw[1] ?? 0,
+                'hoan_thanh' => $donTheoTrangThaiRaw[2] ?? 0,
+                'da_huy' => $donTheoTrangThaiRaw[3] ?? 0,
             ];
 
             // === 5. Top 5 món bán chạy hôm nay ===
             $topMonBanChay = ChiTietDonHang::select('mon_id', DB::raw('SUM(so_luong) as tong_ban'))
                 ->whereHas('donHang', function ($q) use ($today) {
-                    $q->whereDate('created_at', $today);
+                    $q->whereDate('created_at', $today)
+                      ->where('trang_thai_don', '!=', 3);
                 })
                 ->groupBy('mon_id')
                 ->orderByDesc('tong_ban')
@@ -125,10 +138,37 @@ class DashboardController extends Controller
                     ];
                 });
 
-            // === 8. Đánh giá trung bình ===
+            // === 8. Thống kê bàn ===
+            $banStats = \App\Models\Ban::selectRaw('COUNT(*) as total')
+                ->selectRaw('COUNT(CASE WHEN trang_thai = 2 THEN 1 END) as occupied')
+                ->selectRaw('COUNT(CASE WHEN trang_thai = 1 THEN 1 END) as empty')
+                ->where('trang_thai', '!=', 0)
+                ->first();
+
+            $tongSoBan = $banStats->total;
+            $banDangDung = $banStats->occupied;
+            $banTrong = $banStats->empty;
+
+            // === 9. Doanh thu theo giờ (hôm nay) (Single Query) ===
+            $doanhThuTheoGioRaw = DonHang::whereDate('created_at', $today)
+                ->where('trang_thai_thanh_toan', 1)
+                ->selectRaw('HOUR(created_at) as hour, SUM(tong_tien) as total')
+                ->groupBy('hour')
+                ->pluck('total', 'hour')
+                ->toArray();
+
+            $doanhThuTheoGio = [];
+            for ($h = 6; $h <= 22; $h++) {
+                $doanhThuTheoGio[] = [
+                    'gio' => $h . 'h',
+                    'doanh_thu' => (float) ($doanhThuTheoGioRaw[$h] ?? 0)
+                ];
+            }
+
+            // === 10. Đánh giá trung bình ===
             $danhGiaTB = DanhGia::avg('so_sao');
 
-            // === 9. Thống kê tổng hợp (tất cả thời gian) ===
+            // === 11. Thống kê tổng hợp (tất cả thời gian) ===
             $tongDoanhThuAll = DonHang::where('trang_thai_thanh_toan', 1)->sum('tong_tien');
             $tongDonAll = DonHang::count();
 
@@ -147,7 +187,13 @@ class DashboardController extends Controller
                         'tong_don' => $tongDonAll,
                         'danh_gia_trung_binh' => $danhGiaTB ? round((float) $danhGiaTB, 1) : null,
                     ],
+                    'thong_ke_ban' => [
+                        'tong_so_ban' => $tongSoBan,
+                        'ban_dang_dung' => $banDangDung,
+                        'ban_trong' => $banTrong,
+                    ],
                     'doanh_thu_7_ngay' => $doanhThu7Ngay,
+                    'doanh_thu_theo_gio' => $doanhThuTheoGio,
                     'don_theo_trang_thai' => $donTheoTrangThai,
                     'top_mon_ban_chay' => $topMonBanChay,
                     'don_hang_gan_day' => $donHangGanDay,

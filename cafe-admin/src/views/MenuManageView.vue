@@ -153,7 +153,6 @@
               </div>
             </div>
           </div>
-          <div v-if="modalError" class="error-msg">{{ modalError }}</div>
           <div class="modal-actions">
             <button class="btn btn-ghost" @click="showModal = false">Hủy</button>
             <button class="btn btn-primary" @click="saveModal" :disabled="modalSaving">{{ modalSaving ? 'Đang lưu...' : 'Lưu' }}</button>
@@ -206,12 +205,12 @@ function openDM(dm) {
 async function deleteDM(dm) {
   const ok = await confirm(`Bạn có chắc muốn xóa danh mục "${dm.ten_danh_muc}"?`, 'Xóa danh mục')
   if (!ok) return
-  try { await api.deleteDanhMuc(dm.id); toast.success('Đã xóa danh mục!'); await loadDanhMucs() } catch(e) { toast.error(e.response?.data?.message || 'Lỗi') }
+  try { await api.deleteDanhMuc(dm.id); toast.success('Đã xóa danh mục!'); await loadDanhMucs() } catch(e) { toast.error(e.response?.data?.message || 'Có lỗi xảy ra. Vui lòng thử lại.') }
 }
 
 function openMon(m) {
   modalTitle.value = m ? 'Sửa món ăn' : 'Thêm món ăn'
-  modalData.value = m ? { ...m, topping_ids: m.topping_ids || [], size_ids: m.size_ids || [] } : { ma_mon: '', danh_muc_id: '', ten_mon: '', gia_ban: 0, trang_thai: 1, hinh_anh: '', cong_thuc: '', topping_ids: [], size_ids: [] }
+  modalData.value = m ? { ...m, topping_ids: m.topping_ids || [], size_ids: m.size_ids || [] } : { ma_mon: '', danh_muc_id: '', ten_mon: '', gia_ban: 0, trang_thai: 1, hinh_anh: '', topping_ids: [], size_ids: [] }
   modalFields.value = [
     { key: 'ma_mon', label: 'Mã món', disabled: !!m },{ key: 'ten_mon', label: 'Tên món' },
     { key: 'danh_muc_id', label: 'Danh mục', type: 'select', options: danhMucs.value.map(d => ({ value: d.id, label: d.ten_danh_muc })) },
@@ -219,7 +218,7 @@ function openMon(m) {
     { key: 'topping_ids', label: 'Topping (Giữ Ctrl để chọn)', type: 'multiselect', options: toppings.value.map(t => ({ value: t.id, label: t.ten_topping })) },
     { key: 'size_ids', label: 'Kích cỡ (Giữ Ctrl để chọn)', type: 'multiselect', options: kichCos.value.map(s => ({ value: s.id, label: s.ten_kich_co })) },
     { key: 'trang_thai', label: 'Trạng thái', type: 'select', options: [{ value: 1, label: 'Đang bán' }, { value: 0, label: 'Ngừng bán' }] },
-    { key: 'hinh_anh', label: 'URL Hình ảnh' },{ key: 'cong_thuc', label: 'Hướng dẫn pha chế', type: 'textarea' },
+    { key: 'hinh_anh', label: 'URL Hình ảnh' },
   ]
   modalError.value = ''
   modalSaveFn = async () => { if (m) await api.updateMon(m.id, modalData.value); else await api.createMon(modalData.value); await loadMons(); toast.success(m ? 'Cập nhật món thành công!' : 'Thêm món thành công!') }
@@ -228,7 +227,7 @@ function openMon(m) {
 async function deleteMon(m) {
   const ok = await confirm(`Bạn có chắc muốn xóa món "${m.ten_mon}"?`, 'Xóa món')
   if (!ok) return
-  try { await api.deleteMon(m.id); toast.success('Đã xóa món!'); await loadMons() } catch(e) { toast.error(e.response?.data?.message || 'Lỗi') }
+  try { await api.deleteMon(m.id); toast.success('Đã xóa món!'); await loadMons() } catch(e) { toast.error(e.response?.data?.message || 'Có lỗi xảy ra. Vui lòng thử lại.') }
 }
 
 function openKC(kc) {
@@ -242,7 +241,7 @@ function openKC(kc) {
 async function deleteKC(kc) {
   const ok = await confirm(`Bạn có chắc muốn xóa kích cỡ "${kc.ten_kich_co}"?`, 'Xóa kích cỡ')
   if (!ok) return
-  try { await api.deleteKichCo(kc.id); toast.success('Đã xóa!'); await loadKichCos() } catch(e) { toast.error(e.response?.data?.message || 'Lỗi') }
+  try { await api.deleteKichCo(kc.id); toast.success('Đã xóa!'); await loadKichCos() } catch(e) { toast.error(e.response?.data?.message || 'Có lỗi xảy ra. Vui lòng thử lại.') }
 }
 
 function openTP(tp) {
@@ -260,7 +259,7 @@ function openTP(tp) {
 async function deleteTP(tp) {
   const ok = await confirm(`Bạn có chắc muốn xóa topping "${tp.ten_topping}"?`, 'Xóa topping')
   if (!ok) return
-  try { await api.deleteTopping(tp.id); toast.success('Đã xóa!'); await loadToppings() } catch(e) { toast.error(e.response?.data?.message || 'Lỗi') }
+  try { await api.deleteTopping(tp.id); toast.success('Đã xóa!'); await loadToppings() } catch(e) { toast.error(e.response?.data?.message || 'Có lỗi xảy ra. Vui lòng thử lại.') }
 }
 
 function resetCongThuc() {
@@ -297,12 +296,12 @@ async function saveCongThuc() {
       await loadToppings() // Refresh data to get new cong_thucs
     }
     toast.success('Lưu thành công!')
-  } catch(e) { toast.error(e.response?.data?.message || 'Lỗi') }
+  } catch(e) { toast.error(e.response?.data?.message || 'Có lỗi xảy ra. Vui lòng thử lại.') }
 }
 
 async function saveModal() {
-  modalSaving.value = true; modalError.value = ''
-  try { await modalSaveFn(); showModal.value = false } catch(e) { modalError.value = e.response?.data?.message || 'Lỗi khi lưu' } finally { modalSaving.value = false }
+  modalSaving.value = true
+  try { await modalSaveFn(); showModal.value = false } catch(e) { toast.error(e.response?.data?.message || 'Lỗi lưu dữ liệu. Vui lòng kiểm tra lại các trường thông tin.') } finally { modalSaving.value = false }
 }
 
 onMounted(() => { loadDanhMucs(); loadMons(); loadKichCos(); loadToppings(); loadNguyenLieus() })

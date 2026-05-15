@@ -69,12 +69,35 @@ const handleCheckout = async (paymentMethod) => {
       ma_ban: tableCode.value || null,
       loai_don: tableId.value ? 'tai_ban' : 'mang_di',
       phuong_thuc_thanh_toan: paymentMethod,
-      chi_tiets: cart.value.map(item => ({
-        mon_id: item.id,
-        so_luong: item.quantity,
-        don_gia: item.gia_ban,
-        ghi_chu: item.ghi_chu || ''
-      }))
+      chi_tiets: cart.value.map(item => {
+        const raw = item._rawOptions || {}
+        
+        // Tìm id thực (DB) của kích cỡ từ mã kich_co trong sizes của món
+        let kichCoId = null
+        if (raw.sizeId && item.sizes) {
+          const sizeObj = item.sizes.find(s => s.ma_kich_co === raw.sizeId)
+          if (sizeObj) kichCoId = sizeObj.id
+        }
+        
+        // Tìm id thực (DB) của toppings từ mã topping
+        let toppingIds = []
+        if (raw.toppingIds && raw.toppingIds.length > 0 && item.toppings) {
+          toppingIds = raw.toppingIds
+            .map(tid => {
+              const tp = item.toppings.find(t => t.ma_topping === tid)
+              return tp ? tp.id : null
+            })
+            .filter(id => id !== null)
+        }
+        
+        return {
+          mon_id: item.id,
+          so_luong: item.quantity,
+          kich_co_id: kichCoId,
+          topping_ids: toppingIds,
+          ghi_chu: item.ghi_chu || ''
+        }
+      })
     }
 
     const res = await api.submitQrOrder(payload)

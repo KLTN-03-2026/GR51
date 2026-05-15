@@ -8,7 +8,7 @@ class InventoryView extends StatefulWidget {
 
   @override
   State<InventoryView> createState() => _InventoryViewState();
-}
+}                                                         
 
 class _InventoryViewState extends State<InventoryView> {
   final TextEditingController _searchController = TextEditingController();

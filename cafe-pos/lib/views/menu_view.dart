@@ -11,7 +11,8 @@ import 'modals/payment_modal.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'viewmodels/auth_viewmodel.dart';
-import '../models/item_options_modal.dart'; 
+import '../models/item_options_modal.dart';
+import '../utils/toast_utils.dart';
 class MenuView extends StatefulWidget {
   const MenuView({super.key});
 
@@ -272,12 +273,7 @@ class _MenuViewState extends State<MenuView> {
             return GestureDetector(
               onTap: () {
                 if (mon.isHetHang) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Món nước này đã hết nguyên liệu tồn kho!'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
+                  ToastUtils.showError(context, 'Món nước này đã hết nguyên liệu tồn kho!');
                   return;
                 }
 
@@ -527,15 +523,9 @@ class _MenuViewState extends State<MenuView> {
                         final String loaiDon = selectedBan != null ? 'tai_ban' : 'mang_di';
                         final String? maBanString = selectedBan?.maBan;
 
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Đang in các tem của ly nước để pha chế...'),
-                            backgroundColor: Colors.blue,
-                            duration: Duration(seconds: 1),
-                          ),
-                        );
+                        ToastUtils.showInfo(context, 'Đang in các tem của ly nước để pha chế...');
 
-                        bool success = await cart.submitOrder(
+                        final result = await cart.submitOrder(
                           loaiDon: loaiDon,
                           phuongThucThanhToan: 'tien_mat',
                           banId: selectedBan?.id,
@@ -544,14 +534,11 @@ class _MenuViewState extends State<MenuView> {
                         );
 
                         if (context.mounted) {
+                          bool success = result != null;
                           if (success) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Đã gửi yêu cầu pha chế thành công!'), backgroundColor: Colors.green),
-                            );
+                            ToastUtils.showSuccess(context, 'Đã gửi yêu cầu pha chế thành công!');
                           } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Lỗi: Thu ngân kiểm tra lại kết nối mạng.'), backgroundColor: Colors.red),
-                            );
+                            ToastUtils.showError(context, 'Lỗi: Thu ngân kiểm tra lại kết nối mạng.');
                           }
                         }
                       },
@@ -583,19 +570,9 @@ class _MenuViewState extends State<MenuView> {
                           );
                           
                           if (context.mounted && success == true) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Tạo đơn hàng thành công!'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
+                            ToastUtils.showSuccess(context, 'Tạo đơn hàng thành công!');
                           } else if (context.mounted && success == false) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Lỗi: Không thể khởi tạo đơn hàng.'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
+                            ToastUtils.showError(context, 'Lỗi: Không thể khởi tạo đơn hàng.');
                           }
                         },
                   style: ElevatedButton.styleFrom(

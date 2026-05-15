@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
 import '../viewmodels/cart_viewmodel.dart';
+import '../../utils/currency_formatter.dart';
 import '../../models/cart_item_model.dart';
-
+import '../../utils/invoice_printer.dart';
+import '../../utils/toast_utils.dart';
 class PaymentModal extends StatefulWidget {
   final String loaiDon;
   final int? banId;
@@ -24,12 +27,15 @@ class _PaymentModalState extends State<PaymentModal> {
   String _phuongThuc = 'Tiền mặt'; // Giới hạn chỉ có Tiền mặt và Chuyển khoản
   final TextEditingController _tienKhachDuaController = TextEditingController();
   final _currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
+  Map<String, dynamic>? _createdOrder;
+  bool _isPreSubmitting = false;
 
   @override
   void initState() {
     super.initState();
     // Khởi tạo mặc định Khách đưa đủ
-    _tienKhachDuaController.text = widget.totalPrice.toInt().toString();
+    final formatter = NumberFormat('#,###', 'vi_VN');
+    _tienKhachDuaController.text = formatter.format(widget.totalPrice.toInt());
   }
 
   @override
@@ -50,7 +56,8 @@ class _PaymentModalState extends State<PaymentModal> {
 
   void _onAmountSuggest(double suggest) {
     setState(() {
-      _tienKhachDuaController.text = suggest.toInt().toString();
+      final formatter = NumberFormat('#,###', 'vi_VN');
+      _tienKhachDuaController.text = formatter.format(suggest.toInt());
     });
   }
 
@@ -204,7 +211,12 @@ class _PaymentModalState extends State<PaymentModal> {
                             children: [
                               _buildPaymentMethodOption('Tiền mặt', Icons.money),
                               const SizedBox(width: 16),
-                              _buildPaymentMethodOption('Chuyển khoản', Icons.qr_code),
+                              _buildPaymentMethodOption('Chuyển khoản', Icons.qr_code, onTap: () {
+                                setState(() => _phuongThuc = 'Chuyển khoản');
+                                if (_createdOrder == null) {
+                                  _preSubmitOrder(context.read<CartViewModel>());
+                                }
+                              }),
                             ],
                           ),
                           const SizedBox(height: 24),
@@ -220,6 +232,9 @@ class _PaymentModalState extends State<PaymentModal> {
                                     TextField(
                                       controller: _tienKhachDuaController,
                                       keyboardType: TextInputType.number,
+                                      inputFormatters: [
+                                        CurrencyInputFormatter(),
+                                      ],
                                       onChanged: (v) => setState(() {}),
                                       style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                                       textAlign: TextAlign.right,
@@ -282,14 +297,40 @@ class _PaymentModalState extends State<PaymentModal> {
                                         child: Column(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            const Icon(Icons.qr_code_2, size: 140, color: Colors.black87),
-                                            const SizedBox(height: 16),
-                                            const Text('Vui lòng quét mã QR để thanh toán', style: TextStyle(color: Colors.blueGrey, fontSize: 13)),
-                                            const SizedBox(height: 8),
-                                            Text(
-                                              _currencyFormat.format(widget.totalPrice),
-                                              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.blue[700]),
-                                            ),
+                                            if (_isPreSubmitting)
+                                              const SizedBox(height: 250, child: Center(child: CircularProgressIndicator()))
+                                            else if (_createdOrder != null) ...[
+                                              ClipRRect(
+                                                borderRadius: BorderRadius.circular(8),
+                                                child: Image.network(
+                                                  'https://img.vietqr.io/image/MB-0944799214-compact2.png?amount=${widget.totalPrice.toInt()}&addInfo=${_createdOrder!['data']['ma_don_hang']}&accountName=NGUYEN TRAN DANG TRUONG',
+                                                  width: 220,
+                                                  height: 220,
+                                                  fit: BoxFit.contain,
+                                                  loadingBuilder: (context, child, loadingProgress) {
+                                                    if (loadingProgress == null) return child;
+                                                    return const SizedBox(
+                                                      width: 220,
+                                                      height: 220,
+                                                      child: Center(child: CircularProgressIndicator()),
+                                                    );
+                                                  },
+                                                ),
+                                              ),
+                                              const SizedBox(height: 12),
+                                              Text('Mã đơn: ${_createdOrder!['data']['ma_don_hang']}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+                                              const Text('MB Bank • 0944799214', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
+                                              const Text('NGUYEN TRAN DANG TRUONG', style: TextStyle(color: Colors.blueGrey, fontSize: 12)),
+                                              const SizedBox(height: 8),
+                                              const Text('Quét mã QR để thanh toán', style: TextStyle(color: Colors.blueGrey, fontSize: 13)),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                _currencyFormat.format(widget.totalPrice),
+                                                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.blue[700]),
+                                              ),
+                                            ] else ...[
+                                              const SizedBox(height: 250, child: Center(child: Text('Lỗi tạo mã QR. Vui lòng thử lại.'))),
+                                            ],
                                           ],
                                         ),
                                       ),
@@ -306,7 +347,18 @@ class _PaymentModalState extends State<PaymentModal> {
                               Expanded(
                                 flex: 2,
                                 child: OutlinedButton(
-                                  onPressed: () {},
+                                  onPressed: () {
+                                    InvoicePrinter.printInvoice(
+                                      items: cart.cartItems,
+                                      totalPrice: widget.totalPrice,
+                                      customerGiven: _phuongThuc == 'Tiền mặt' ? _tienKhachDua : widget.totalPrice,
+                                      changeAmount: _phuongThuc == 'Tiền mặt' ? _tienThua : 0,
+                                      loaiDon: widget.loaiDon,
+                                      paymentMethod: _phuongThuc,
+                                      banId: widget.banId,
+                                      isProvisional: true,
+                                    );
+                                  },
                                   style: OutlinedButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(vertical: 20),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -322,15 +374,56 @@ class _PaymentModalState extends State<PaymentModal> {
                                   onPressed: cart.isSubmitting 
                                     ? null 
                                     : () async {
-                                          final success = await cart.submitOrder(
+                                        // 0. Kiểm tra số tiền khách đưa nếu là Tiền mặt
+                                        if (_phuongThuc == 'Tiền mặt' && _tienKhachDua < widget.totalPrice) {
+                                          if (context.mounted) {
+                                            ToastUtils.showError(context, 'Số tiền khách đưa không đủ để thanh toán!');
+                                          }
+                                          return;
+                                        }
+
+                                        // 1. Lưu lại danh sách món để in hóa đơn
+                                        final itemsToPrint = List<CartItem>.from(cart.cartItems);
+                                        final givenAmount = _phuongThuc == 'Tiền mặt' ? _tienKhachDua : widget.totalPrice;
+                                        final thoiAmount = _phuongThuc == 'Tiền mặt' ? _tienThua : 0.0;
+
+                                        bool success = false;
+                                        if (_createdOrder != null) {
+                                          success = await cart.updateOrder(
+                                            _createdOrder!['data']['id'],
+                                            1, // Đã thanh toán
+                                            1, // Đang pha
+                                          );
+                                        } else {
+                                          final result = await cart.submitOrder(
                                             loaiDon: widget.loaiDon,
                                             phuongThucThanhToan: _phuongThuc == 'Tiền mặt' ? 'tien_mat' : 'chuyen_khoan',
                                             banId: widget.banId,
-                                            trangThaiThanhToan: 1, // Đã thanh toán
-                                            trangThaiDon: 1, // Đang pha
+                                            trangThaiThanhToan: 1,
+                                            trangThaiDon: 1,
                                           );
-                                        if (context.mounted) {
-                                          Navigator.pop(context, success);
+                                          success = result != null;
+                                        }
+
+                                        if (success) {
+                                          await InvoicePrinter.printInvoice(
+                                            items: itemsToPrint,
+                                            totalPrice: widget.totalPrice,
+                                            customerGiven: givenAmount,
+                                            changeAmount: thoiAmount,
+                                            loaiDon: widget.loaiDon,
+                                            paymentMethod: _phuongThuc,
+                                            banId: widget.banId,
+                                            isProvisional: false,
+                                          );
+
+                                          if (context.mounted) {
+                                            Navigator.pop(context, true);
+                                          }
+                                        } else {
+                                          if (context.mounted) {
+                                            ToastUtils.showError(context, 'Không thể xác nhận thanh toán. Vui lòng thử lại.');
+                                          }
                                         }
                                       },
                                   style: ElevatedButton.styleFrom(
@@ -387,11 +480,11 @@ class _PaymentModalState extends State<PaymentModal> {
     );
   }
 
-  Widget _buildPaymentMethodOption(String title, IconData icon) {
+  Widget _buildPaymentMethodOption(String title, IconData icon, {VoidCallback? onTap}) {
     bool isSelected = _phuongThuc == title;
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() => _phuongThuc = title),
+        onTap: onTap ?? () => setState(() => _phuongThuc = title),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
@@ -415,5 +508,25 @@ class _PaymentModalState extends State<PaymentModal> {
         ),
       ),
     );
+  }
+
+  Future<void> _preSubmitOrder(CartViewModel cart) async {
+    setState(() {
+      _isPreSubmitting = true;
+    });
+    
+    final result = await cart.submitOrder(
+      loaiDon: widget.loaiDon,
+      phuongThucThanhToan: 'chuyen_khoan',
+      banId: widget.banId,
+      trangThaiThanhToan: 0, // Chưa thanh toán
+      trangThaiDon: 0, // Mới (Chờ thanh toán), không hiện ngay ở bếp
+      shouldClearCart: false, // Quan trọng: Không xóa giỏ hàng ở bước pre-submit này
+    );
+
+    setState(() {
+      _createdOrder = result;
+      _isPreSubmitting = false;
+    });
   }
 }
